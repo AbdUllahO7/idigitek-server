@@ -14,10 +14,6 @@ export const env = {
   mongodb: {
     uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/secure-express-api',
     uriTest: process.env.MONGODB_URI_TEST || 'mongodb://localhost:27017/secure-express-api-test',
-    options: {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    },
   },
   
   // JWT settings
@@ -32,9 +28,12 @@ export const env = {
   // Security settings
   security: {
     bcryptSaltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10),
-    rateLimitWindowMs: eval(process.env.RATE_LIMIT_WINDOW_MS || '15 * 60 * 1000'), // 15 minutes in milliseconds
-    rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100', 10), // Maximum 100 requests per windowMs
+    rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes in milliseconds (default)
+    rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100', 10), // Maximum 100 requests per window
   },
+  
+  // CORS settings
+  corsAllowedOrigins: process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(',') : [],
   
   // Logging settings
   logging: {

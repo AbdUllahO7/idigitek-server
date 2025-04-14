@@ -13,9 +13,16 @@ import { globalRateLimiter } from './middleware/rateLimiter.middleware';
 // Import routes
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
+import sectionRoutes from './routes/section.routes';
+import subsectionRoutes from './routes/subSection.routes';
+import sectionElementRoutes from './routes/sectionElement.routes';
+import { requestIdMiddleware } from './middleware/requestId.midlleware';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.middlerware';
 
 const app: Express = express();
+
+// Add unique identifier to each request - important for error tracking
+app.use(requestIdMiddleware);
 
 // Set security HTTP headers
 app.use(helmet());
@@ -36,7 +43,7 @@ app.use(compression());
 // Enable CORS
 app.use(
   cors({
-    origin: '*', // In production, set this to specific origins
+    origin: env.nodeEnv === 'production' ? env.corsAllowedOrigins : '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -56,10 +63,9 @@ app.use(requestLogger);
 const apiVersion = env.apiVersion;
 app.use(`/api/${apiVersion}/auth`, authRoutes);
 app.use(`/api/${apiVersion}/users`, userRoutes);
-
-
-
-
+app.use(`/api/${apiVersion}/sections`, sectionRoutes);
+app.use(`/api/${apiVersion}/subsections`, subsectionRoutes);
+app.use(`/api/${apiVersion}/elements`, sectionElementRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
@@ -68,6 +74,7 @@ app.get('/health', (req, res) => {
     message: 'Server is healthy',
     timestamp: new Date().toISOString(),
     environment: env.nodeEnv,
+    requestId: (req as any).requestId,
   });
 });
 

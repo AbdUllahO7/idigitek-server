@@ -5,11 +5,11 @@ import express from 'express';
 const router = express.Router();
 
 // Register only the simplest routes first to isolate the issue
-router.post('/register', (req, res) => {
+router.post('/register', (_req, res) => {
   res.json({ message: 'Register route placeholder' });
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', (_req, res) => {
   res.json({ message: 'Login route placeholder' });
 });
 

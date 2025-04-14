@@ -9,6 +9,7 @@ interface ApiResponse<T> {
   data?: T;
   error?: any;
   timestamp: string;
+  requestId?: string;
 }
 
 /**
@@ -44,6 +45,7 @@ export const sendSuccess = <T>(
     message,
     data,
     timestamp: new Date().toISOString(),
+    requestId: (res.req as any).requestId,
   };
   
   return res.status(statusCode).json(response);
@@ -65,6 +67,7 @@ export const sendPaginatedSuccess = <T>(
     data,
     pagination,
     timestamp: new Date().toISOString(),
+    requestId: (res.req as any).requestId,
   };
   
   return res.status(statusCode).json(response);
@@ -84,6 +87,7 @@ export const sendError = (
     message,
     error: error || undefined,
     timestamp: new Date().toISOString(),
+    requestId: (res.req as any).requestId,
   };
   
   return res.status(statusCode).json(response);

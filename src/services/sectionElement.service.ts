@@ -1,7 +1,9 @@
+import mongoose, { Types } from 'mongoose';
 import SectionElementModel from '../models/sectionElement.model';
 import SectionElementRelationModel from '../models/sectionElementRelation.model';
 import { ISectionElement } from '../types/SectionElement.types';
-import { ISectionElementRelation } from '../types/sectionElementRelation.types';
+import { AppError } from '../middleware/errorHandler.middlerware';
+import { ExtendedPopulateOptions } from 'src/types/moongoseExtinstions';
 
 class SectionElementService {
   /**
@@ -9,6 +11,14 @@ class SectionElementService {
    */
   async createSectionElement(elementData: Partial<ISectionElement>) {
     try {
+      if (!elementData.name) {
+        throw AppError.validation('Element name is required');
+      }
+      
+      if (!elementData.type) {
+        throw AppError.validation('Element type is required');
+      }
+      
       const element = new SectionElementModel({
         name: elementData.name,
         type: elementData.type,
@@ -24,9 +34,11 @@ class SectionElementService {
       
       await element.save();
       return element;
-    } catch (error) {
-      console.error('Error in createSectionElement service:', error);
-      throw error;
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw AppError.database('Error creating section element', { error: error.message });
     }
   }
   
@@ -47,9 +59,8 @@ class SectionElementService {
         .limit(limit);
       
       return elements;
-    } catch (error) {
-      console.error('Error in getAllSectionElements service:', error);
-      throw error;
+    } catch (error: any) {
+      throw AppError.database('Error fetching section elements', { error: error.message });
     }
   }
   
@@ -58,16 +69,23 @@ class SectionElementService {
    */
   async getSectionElementById(id: string) {
     try {
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw AppError.validation('Invalid element ID format');
+      }
+      
       const element = await SectionElementModel.findById(id);
       
       if (!element) {
-        throw new Error(`SectionElement with ID ${id} not found`);
+        throw AppError.notFound(`SectionElement with ID ${id} not found`);
       }
       
       return element;
-    } catch (error) {
-      console.error('Error in getSectionElementById service:', error);
-      throw error;
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw AppError.database('Error fetching section element', { error: error.message });
     }
   }
   
@@ -76,10 +94,15 @@ class SectionElementService {
    */
   async updateSectionElementById(id: string, updateData: Partial<ISectionElement>) {
     try {
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw AppError.validation('Invalid element ID format');
+      }
+      
       const element = await SectionElementModel.findById(id);
       
       if (!element) {
-        throw new Error(`SectionElement with ID ${id} not found`);
+        throw AppError.notFound(`SectionElement with ID ${id} not found`);
       }
       
       const updatedElement = await SectionElementModel.findByIdAndUpdate(
@@ -89,9 +112,11 @@ class SectionElementService {
       );
       
       return updatedElement;
-    } catch (error) {
-      console.error('Error in updateSectionElementById service:', error);
-      throw error;
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw AppError.database('Error updating section element', { error: error.message });
     }
   }
   
@@ -100,10 +125,15 @@ class SectionElementService {
    */
   async deleteSectionElementById(id: string, hardDelete = false) {
     try {
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw AppError.validation('Invalid element ID format');
+      }
+      
       const element = await SectionElementModel.findById(id);
       
       if (!element) {
-        throw new Error(`SectionElement with ID ${id} not found`);
+        throw AppError.notFound(`SectionElement with ID ${id} not found`);
       }
       
       if (hardDelete) {
@@ -124,27 +154,51 @@ class SectionElementService {
       }
       
       return { success: true, message: `SectionElement ${hardDelete ? 'deleted' : 'deactivated'} successfully` };
-    } catch (error) {
-      console.error('Error in deleteSectionElementById service:', error);
-      throw error;
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw AppError.database('Error deleting section element', { error: error.message });
     }
   }
   
   /**
    * Associate element with a section or subsection
    */
-  async associateElement(relationData: Partial<ISectionElementRelation>) {
+  async associateElement(relationData: {
+    element: Types.ObjectId | string;
+    parent: Types.ObjectId | string;
+    parentType: 'section' | 'subsection';
+    order?: number;
+    isActive?: boolean;
+    config?: any;
+  }) {
     try {
       // Validate required fields
       if (!relationData.element || !relationData.parent || !relationData.parentType) {
-        throw new Error('Missing required fields: element, parent, or parentType');
+        throw AppError.validation('Missing required fields: element, parent, or parentType');
+      }
+      
+      // Ensure IDs are ObjectIds
+      const elementId = typeof relationData.element === 'string' 
+        ? new Types.ObjectId(relationData.element) 
+        : relationData.element;
+        
+      const parentId = typeof relationData.parent === 'string'
+        ? new Types.ObjectId(relationData.parent)
+        : relationData.parent;
+      
+      // Verify the element exists
+      const elementExists = await SectionElementModel.exists({ _id: elementId });
+      if (!elementExists) {
+        throw AppError.notFound('Element not found');
       }
       
       // Create or update the association
       const relation = await SectionElementRelationModel.findOneAndUpdate(
         { 
-          element: relationData.element,
-          parent: relationData.parent,
+          element: elementId,
+          parent: parentId,
           parentType: relationData.parentType
         },
         { 
@@ -156,9 +210,11 @@ class SectionElementService {
       );
       
       return relation;
-    } catch (error) {
-      console.error('Error in associateElement service:', error);
-      throw error;
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw AppError.database('Error associating element', { error: error.message });
     }
   }
   
@@ -167,8 +223,13 @@ class SectionElementService {
    */
   async getElementsForParent(parentId: string, parentType: 'section' | 'subsection', activeOnly = true) {
     try {
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(parentId)) {
+        throw AppError.validation(`Invalid ${parentType} ID format`);
+      }
+      
       const query: any = { 
-        parent: parentId,
+        parent: new Types.ObjectId(parentId),
         parentType
       };
       
@@ -191,9 +252,11 @@ class SectionElementService {
         relations: validRelations,
         elements: validRelations.map(rel => rel.element)
       };
-    } catch (error) {
-      console.error('Error in getElementsForParent service:', error);
-      throw error;
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw AppError.database('Error getting elements for parent', { error: error.message });
     }
   }
   
@@ -202,17 +265,24 @@ class SectionElementService {
    */
   async getParentsForElement(elementId: string, activeOnly = true) {
     try {
-      const query: any = { element: elementId };
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(elementId)) {
+        throw AppError.validation('Invalid element ID format');
+      }
+      
+      const query: any = { element: new Types.ObjectId(elementId) };
       
       if (activeOnly) {
         query.isActive = true;
       }
+      const populateOptions: ExtendedPopulateOptions = {
+        path: 'parent',
+        refPath: 'parentType'
+      };
       
       const relations = await SectionElementRelationModel.find(query)
-        .populate({
-          path: 'parent',
-          refPath: 'parentType'
-        });
+      .populate(populateOptions);
+
       
       // Filter out any relations where the parent is null
       const validRelations = relations.filter(rel => rel.parent);
@@ -227,47 +297,65 @@ class SectionElementService {
         sectionRelations,
         subsectionRelations
       };
-    } catch (error) {
-      console.error('Error in getParentsForElement service:', error);
-      throw error;
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw AppError.database('Error getting parents for element', { error: error.message });
     }
   }
   
   /**
    * Remove association between element and parent
    */
-  async removeAssociation(elementId: string, parentId: string, parentType: 'section' | 'subsection', hardDelete = false) {
+  async removeAssociation(
+    elementId: Types.ObjectId | string, 
+    parentId: Types.ObjectId | string, 
+    parentType: 'section' | 'subsection', 
+    hardDelete = false
+  ) {
     try {
+      // Ensure IDs are ObjectIds
+      const elemId = typeof elementId === 'string' 
+        ? new Types.ObjectId(elementId) 
+        : elementId;
+        
+      const parId = typeof parentId === 'string'
+        ? new Types.ObjectId(parentId)
+        : parentId;
+      
       if (hardDelete) {
         // Permanently delete the association
         const result = await SectionElementRelationModel.findOneAndDelete({
-          element: elementId,
-          parent: parentId,
+          element: elemId,
+          parent: parId,
           parentType
         });
         
         if (!result) {
-          throw new Error('Association not found');
+          throw AppError.notFound('Association not found');
         }
         
         return { success: true, message: 'Association deleted successfully' };
       } else {
         // Soft delete - mark as inactive
         const result = await SectionElementRelationModel.findOneAndUpdate(
-          { element: elementId, parent: parentId, parentType },
+          { element: elemId, parent: parId, parentType },
           { isActive: false },
           { new: true }
         );
         
         if (!result) {
-          throw new Error('Association not found');
+          throw AppError.notFound('Association not found');
         }
         
         return { success: true, message: 'Association deactivated successfully' };
       }
-    } catch (error) {
-      console.error('Error in removeAssociation service:', error);
-      throw error;
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw AppError.database('Error removing association', { error: error.message });
     }
   }
 }

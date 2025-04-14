@@ -25,7 +25,7 @@ export const validateRequest = (schema: any) => {
 /**
  * Middleware to check if MongoDB ObjectId is valid
  */
-export const validateObjectId = (req: Request, res: Response, next: NextFunction) => {
+export const validateObjectId = (req: Request, res: Response, next: NextFunction): Response | void => {
   const { id } = req.params;
   
   // Regular expression to check if string is a valid ObjectId
@@ -40,6 +40,7 @@ export const validateObjectId = (req: Request, res: Response, next: NextFunction
   
   next();
 };
+
 
 /**
  * Middleware to handle async errors

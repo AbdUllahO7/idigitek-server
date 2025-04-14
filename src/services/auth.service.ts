@@ -4,7 +4,6 @@ import {
   IRegisterUserRequest, 
   UserStatus 
 } from '../types/user.types';
-import { comparePassword, hashPassword } from '../utils/encryption';
 import { generateAuthTokens, verifyToken } from '../utils/jwt';
 import crypto from 'crypto';
 import logger from '../config/logger';
