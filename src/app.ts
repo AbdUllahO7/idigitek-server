@@ -57,6 +57,10 @@ const apiVersion = env.apiVersion;
 app.use(`/api/${apiVersion}/auth`, authRoutes);
 app.use(`/api/${apiVersion}/users`, userRoutes);
 
+
+
+
+
 // Health check route
 app.get('/health', (req, res) => {
   res.status(200).json({
