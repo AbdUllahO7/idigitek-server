@@ -1,7 +1,8 @@
+// src/controllers/auth.controller.ts
 import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
 import * as authService from '../services/auth.service';
-import { AppError, asyncHandler } from 'src/middleware/errorHandler.middlerware';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 
 /**
  * Register a new user

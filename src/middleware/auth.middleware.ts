@@ -1,3 +1,4 @@
+// src/middleware/auth.middleware.ts
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { UserRole } from '../types/user.types';
@@ -5,7 +6,7 @@ import { AppError, ErrorType } from './errorHandler.middlerware';
 
 /**
  * Authenticate user middleware
-*/
+ */
 export const authenticate = (req: Request, _res: Response, next: NextFunction) => {
   try {
     // Extract token from header
@@ -24,7 +25,7 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction) =
       const decoded = verifyToken(token);
 
       // Set user info in the request
-      (req as any).user = {
+      req.user = {
         id: decoded.id,
         email: decoded.email,
         role: decoded.role,
@@ -49,14 +50,14 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction) =
  */
 export const isAdmin = (req: Request, _res: Response, next: NextFunction) => {
   try {
-    if (!(req as any).user) {
+    if (!req.user) {
       throw AppError.authentication('Authentication required');
     }
 
-    if ((req as any).user.role !== UserRole.ADMIN) {
+    if (req.user.role !== UserRole.ADMIN) {
       throw AppError.authorization('Admin role required', {
         requiredRole: UserRole.ADMIN,
-        userRole: (req as any).user.role
+        userRole: req.user.role
       });
     }
 
@@ -76,12 +77,12 @@ export const isAdmin = (req: Request, _res: Response, next: NextFunction) => {
  */
 export const isOwnerOrAdmin = (req: Request, _res: Response, next: NextFunction) => {
   try {
-    if (!(req as any).user) {
+    if (!req.user) {
       throw AppError.authentication('Authentication required');
     }
 
     // Allow if user is admin
-    if ((req as any).user.role === UserRole.ADMIN) {
+    if (req.user.role === UserRole.ADMIN) {
       return next();
     }
 
@@ -91,13 +92,13 @@ export const isOwnerOrAdmin = (req: Request, _res: Response, next: NextFunction)
       throw AppError.badRequest('Resource ID is required');
     }
     
-    if (resourceId === (req as any).user.id) {
+    if (resourceId === req.user.id) {
       return next();
     }
 
     throw AppError.authorization('You do not have permission to access this resource', {
       resourceId,
-      userId: (req as any).user.id
+      userId: req.user.id
     });
   } catch (error: any) {
     // Ensure error is properly typed or converted to AppError

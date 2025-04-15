@@ -1,6 +1,6 @@
-import { IUser, UserRole } from './user.types';
+// src/types/express.d.ts
+import { UserRole } from './user.types';
 
-// Extend Express Request interface to include user and auth info
 declare global {
   namespace Express {
     interface Request {
@@ -9,10 +9,8 @@ declare global {
         email: string;
         role: UserRole;
       };
+      requestId?: string;
       startTime?: number;
     }
   }
 }
-
-// This export is needed to make this a module
-export {};

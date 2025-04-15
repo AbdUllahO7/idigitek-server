@@ -16,7 +16,7 @@ import userRoutes from './routes/user.routes';
 import sectionRoutes from './routes/section.routes';
 import subsectionRoutes from './routes/subSection.routes';
 import sectionElementRoutes from './routes/sectionElement.routes';
-import { requestIdMiddleware } from './middleware/requestId.midlleware';
+import { requestIdMiddleware } from './middleware/requestId.middlerware';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.middlerware';
 
 const app: Express = express();

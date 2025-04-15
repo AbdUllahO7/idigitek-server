@@ -7,7 +7,7 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 export const env = {
   // Server settings
   nodeEnv: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '3000', 10),
+  port: parseInt(process.env.PORT || '6000', 10),
   apiVersion: process.env.API_VERSION || 'v1',
   
   // MongoDB settings
