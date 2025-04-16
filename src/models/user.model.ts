@@ -130,7 +130,7 @@ userSchema.methods.generateRefreshToken = function (): string {
     },
     secret,
     {
-      expiresIn: env.jwt.refreshExpiration,
+      // expiresIn: env.jwt.refreshExpiration,
     }
   );
   

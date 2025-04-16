@@ -1,143 +1,185 @@
-// src/controllers/auth.controller.ts
 import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
-import * as authService from '../services/auth.service';
+import authService from '../services/auth.service';
+import userService from '../services/user.service';
 import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 
 /**
- * Register a new user
+ * Authentication Controller
+ * Handles all authentication-related requests
  */
-export const register = asyncHandler(async (req: Request, res: Response) => {
-  const result = await authService.register(req.body);
-  
-  // Don't return verification token in production
-  if (process.env.NODE_ENV === 'production') {
-    // Create a new object without the verificationToken instead of using delete
-    const { verificationToken, ...safeResult } = result;
-    return sendSuccess(res, safeResult, 'User registered successfully', 201);
-  }
-  
-  return sendSuccess(res, result, 'User registered successfully', 201);
-});
+class AuthController {
+  // Flag to track if the initial owner user has been created
+  private initialOwnerCreated = false;
 
-/**
- * Login user
- */
-export const login = asyncHandler(async (req: Request, res: Response) => {
-  const result = await authService.login(req.body);
-  return sendSuccess(res, result, 'User logged in successfully');
-});
+  /**
+   * Register a new user
+   */
+  register = asyncHandler(async (req: Request, res: Response) => {
+    const result = await authService.register(req.body);
+    
+    // Don't return verification token in production
+    if (process.env.NODE_ENV === 'production') {
+      // Create a new object without the verificationToken instead of using delete
+      const { verificationToken, ...safeResult } = result;
+      return sendSuccess(res, safeResult, 'User registered successfully', 201);
+    }
+    
+    return sendSuccess(res, result, 'User registered successfully', 201);
+  });
 
-/**
- * Logout user
- */
-export const logout = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user?.id) {
-    throw AppError.badRequest('User ID is required');
-  }
-  
-  const result = await authService.logout(req.user.id);
-  return sendSuccess(res, result, 'User logged out successfully');
-});
+  /**
+   * Login user
+   */
+  login = asyncHandler(async (req: Request, res: Response) => {
 
-/**
- * Refresh access token
- */
-export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
-  
-  if (!refreshToken) {
-    throw AppError.badRequest('Refresh token is required');
-  }
-  
-  const result = await authService.refreshToken(refreshToken);
-  return sendSuccess(res, result, 'Token refreshed successfully');
-});
+    console.log(req.body)
+    // Check if this is the first login and create owner if needed
+    if (!this.initialOwnerCreated) {
+      try {
+        // Check if any users exist in the system
+        const userCount = await userService.getUserCount();
+        
+        if (userCount === 0) {
+          // Create the initial owner user
+          const ownerUser = {
+            firstName: "Idigitek",
+            lastName: "-Admin",
+            email: "admin@idigitek.com",
+            password: "idigitek176984", // This should be changed after first login
+            role: "owner",
+            status : "active"
+          };
+          
+          await authService.register(ownerUser);
+          console.log("Initial owner user created successfully");
+        }
+        
+        // Set flag to true so this code only runs once
+        this.initialOwnerCreated = true;
+      } catch (error) {
+        console.error("Error checking/creating initial owner:", error);
+        // Continue with login even if owner creation fails
+      }
+    }
+    
+    const result = await authService.login(req.body);
+    return sendSuccess(res, result, 'User logged in successfully');
+  });
 
-/**
- * Request password reset
- */
-export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
-  const { email } = req.body;
-  
-  if (!email) {
-    throw AppError.badRequest('Email is required');
-  }
-  
-  const result = await authService.forgotPassword(email);
-  
-  // Don't return reset token in production
-  if (process.env.NODE_ENV === 'production') {
-    // Create a new object without the resetToken instead of using delete
-    const { resetToken, ...safeResult } = result;
-    return sendSuccess(res, safeResult, 'Password reset request processed');
-  }
-  
-  return sendSuccess(res, result, 'Password reset request processed');
-});
+  /**
+   * Logout user
+   */
+  logout = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user?.id) {
+      throw AppError.badRequest('User ID is required');
+    }
+    
+    const result = await authService.logout(req.user.id);
+    return sendSuccess(res, result, 'User logged out successfully');
+  });
 
-/**
- * Reset password with token
- */
-export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
-  const { token, newPassword } = req.body;
-  
-  if (!token || !newPassword) {
-    throw AppError.badRequest('Token and new password are required');
-  }
-  
-  const result = await authService.resetPassword(token, newPassword);
-  return sendSuccess(res, result, 'Password reset successfully');
-});
+  /**
+   * Refresh access token
+   */
+  refreshToken = asyncHandler(async (req: Request, res: Response) => {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+      throw AppError.badRequest('Refresh token is required');
+    }
+    
+    const result = await authService.refreshToken(refreshToken);
+    return sendSuccess(res, result, 'Token refreshed successfully');
+  });
 
-/**
- * Change user password
- */
-export const changePassword = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user?.id) {
-    throw AppError.badRequest('User ID is required');
-  }
-  
-  const { currentPassword, newPassword } = req.body;
-  
-  if (!currentPassword || !newPassword) {
-    throw AppError.badRequest('Current password and new password are required');
-  }
-  
-  const result = await authService.changePassword(req.user.id, currentPassword, newPassword);
-  return sendSuccess(res, result, 'Password changed successfully');
-});
+  /**
+   * Request password reset
+   */
+  forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    
+    if (!email) {
+      throw AppError.badRequest('Email is required');
+    }
+    
+    const result = await authService.forgotPassword(email);
+    
+    // Don't return reset token in production
+    if (process.env.NODE_ENV === 'production') {
+      // Create a new object without the resetToken instead of using delete
+      const { resetToken, ...safeResult } = result;
+      return sendSuccess(res, safeResult, 'Password reset request processed');
+    }
+    
+    return sendSuccess(res, result, 'Password reset request processed');
+  });
 
-/**
- * Verify email with token
- */
-export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
-  const { token } = req.body;
-  
-  if (!token) {
-    throw AppError.badRequest('Verification token is required');
-  }
-  
-  const result = await authService.verifyEmail(token);
-  return sendSuccess(res, result, 'Email verified successfully');
-});
+  /**
+   * Reset password with token
+   */
+  resetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { token, newPassword } = req.body;
+    
+    if (!token || !newPassword) {
+      throw AppError.badRequest('Token and new password are required');
+    }
+    
+    const result = await authService.resetPassword(token, newPassword);
+    return sendSuccess(res, result, 'Password reset successfully');
+  });
 
-/**
- * Resend verification email
- */
-export const resendVerificationEmail = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user?.id) {
-    throw AppError.badRequest('User ID is required');
-  }
-  
-  const result = await authService.resendVerificationEmail(req.user.id);
-  
-  // Don't return verification token in production
-  if (process.env.NODE_ENV === 'production') {
-    // Create a new object without the verificationToken instead of using delete
-    const { verificationToken, ...safeResult } = result;
-    return sendSuccess(res, safeResult, 'Verification email sent successfully');
-  }
-  
-  return sendSuccess(res, result, 'Verification email sent successfully');
-});
+  /**
+   * Change user password
+   */
+  changePassword = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user?.id) {
+      throw AppError.badRequest('User ID is required');
+    }
+    
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      throw AppError.badRequest('Current password and new password are required');
+    }
+    
+    const result = await authService.changePassword(req.user.id, currentPassword, newPassword);
+    return sendSuccess(res, result, 'Password changed successfully');
+  });
+
+  /**
+   * Verify email with token
+   */
+  verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+    const { token } = req.body;
+    
+    if (!token) {
+      throw AppError.badRequest('Verification token is required');
+    }
+    
+    const result = await authService.verifyEmail(token);
+    return sendSuccess(res, result, 'Email verified successfully');
+  });
+
+  /**
+   * Resend verification email
+   */
+  resendVerificationEmail = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user?.id) {
+      throw AppError.badRequest('User ID is required');
+    }
+    
+    const result = await authService.resendVerificationEmail(req.user.id);
+    
+    // Don't return verification token in production
+    if (process.env.NODE_ENV === 'production') {
+      // Create a new object without the verificationToken instead of using delete
+      const { verificationToken, ...safeResult } = result;
+      return sendSuccess(res, safeResult, 'Verification email sent successfully');
+    }
+    
+    return sendSuccess(res, result, 'Verification email sent successfully');
+  });
+}
+
+export default new AuthController();

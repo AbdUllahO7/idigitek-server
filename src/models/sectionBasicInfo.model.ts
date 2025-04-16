@@ -14,10 +14,17 @@ const sectionBasicInfoSchema = new Schema<ISectionBasicInfo>(
     description: {
       type: String,
       trim: true,
+      default: ''
+
+    },
+    image : {
+      type :String,
+      required : false,
+      default : null
     },
     isActive: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     order: {
       type: Number,

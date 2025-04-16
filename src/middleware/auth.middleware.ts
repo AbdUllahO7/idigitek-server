@@ -9,6 +9,8 @@ import { AppError, ErrorType } from './errorHandler.middlerware';
  */
 export const authenticate = (req: Request, _res: Response, next: NextFunction) => {
   try {
+
+    console.log("authenticate" ,req.headers.authorization )
     // Extract token from header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

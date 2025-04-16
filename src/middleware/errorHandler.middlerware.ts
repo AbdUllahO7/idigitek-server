@@ -4,8 +4,10 @@ import { sendError } from '../utils/responseHandler';
 import { env } from '../config/env';
 
 /**
- * Error types for classification
- */
+  * Error types for classification
+*/
+
+
 export enum ErrorType {
   VALIDATION = 'VALIDATION',
   AUTHENTICATION = 'AUTHENTICATION',

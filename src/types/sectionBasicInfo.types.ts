@@ -9,5 +9,6 @@ export interface ISectionBasicInfo extends Document {
     subSections: Schema.Types.ObjectId[] | ISubSection[];
     createdAt: Date;
     updatedAt: Date;
+    image: string
   }
   

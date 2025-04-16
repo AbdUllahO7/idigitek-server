@@ -26,7 +26,8 @@ export const generateAccessToken = (user: IUser): string => {
   return signToken(
     payload,
     env.jwt.secret,
-    { expiresIn: env.jwt.accessExpiration as jwt.SignOptions['expiresIn'] }
+    {}
+    // { expiresIn: env.jwt.accessExpiration as jwt.SignOptions['expiresIn'] }
   );
 };
 

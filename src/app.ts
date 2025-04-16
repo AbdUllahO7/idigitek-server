@@ -18,6 +18,7 @@ import subsectionRoutes from './routes/subSection.routes';
 import sectionElementRoutes from './routes/sectionElement.routes';
 import { requestIdMiddleware } from './middleware/requestId.middlerware';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.middlerware';
+import languagesRoutes from './routes/language.routes';
 
 const app: Express = express();
 
@@ -51,7 +52,7 @@ app.use(
 );
 
 // Set global rate limit
-app.use(globalRateLimiter);
+// app.use(globalRateLimiter);
 
 // Request logging
 if (env.nodeEnv === 'development') {
@@ -66,6 +67,7 @@ app.use(`/api/${apiVersion}/users`, userRoutes);
 app.use(`/api/${apiVersion}/sections`, sectionRoutes);
 app.use(`/api/${apiVersion}/subsections`, subsectionRoutes);
 app.use(`/api/${apiVersion}/elements`, sectionElementRoutes);
+app.use(`/api/${apiVersion}/languages`, languagesRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

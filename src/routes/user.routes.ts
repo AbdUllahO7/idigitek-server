@@ -1,8 +1,8 @@
 import express from 'express';
-import * as userController from '../controllers/user.controller';
 import { validate } from '../middleware/validator.middleware';
 import { authenticate, isAdmin, isOwnerOrAdmin } from '../middleware/auth.middleware';
 import { getUserByIdValidator, getUsersValidator, updateProfileValidator, updateUserRoleValidator, updateUserStatusValidator } from '../validations/user.validation';
+import userController from '../controllers/user.controller';
 
 
 const router = express.Router();
