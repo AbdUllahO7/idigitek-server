@@ -19,6 +19,11 @@ const languagesSchema = new Schema<ILanguages>(
             trim: true,
             index: true,
         },
+        isActive : {
+            type : Boolean,
+            default : false
+
+        },
         subSections: [{
             type: Schema.Types.ObjectId,
             ref: 'SubSection' // Reference to the SubSection model

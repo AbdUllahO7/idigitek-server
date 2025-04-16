@@ -5,29 +5,11 @@ import { Document, Types } from 'mongoose';
  * Extends Mongoose Document to include _id and other Mongoose properties
  */
 export interface ILanguages extends Document {
-  /**
-   * The language name (e.g., "English", "Spanish")
-   */
   language: string;
-  
-  /**
-   * The language code/ID (e.g., "en", "es")
-   */
   languageID: string;
-  
-  /**
-   * References to SubSection documents
-   */
+  isActive : boolean;
   subSections: Types.ObjectId[] | string[];
-  
-  /**
-   * Creation timestamp
-   */
   createdAt: Date;
-  
-  /**
-   * Last updated timestamp
-   */
   updatedAt: Date;
 }
 

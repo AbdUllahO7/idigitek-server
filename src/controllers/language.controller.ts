@@ -24,10 +24,8 @@ class LanguageController {
     
     const languages = await LanguageService.getAllLanguages(limit, skip);
     
-    sendSuccess(res, {
-      count: languages.length,
-      data: languages
-    }, 'Languages retrieved successfully');
+    // Send the languages array directly instead of wrapping it in an object
+    sendSuccess(res, languages, 'Languages retrieved successfully');
   });
 
   /**
@@ -60,6 +58,22 @@ class LanguageController {
     const language = await LanguageService.updateLanguageById(req.params.id, req.body);
     
     sendSuccess(res, language, 'Language updated successfully');
+  });
+
+  /**
+   * Update only the isActive status of a language
+   * @route PATCH /api/languages/:id/status
+   */
+  updateLanguageStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { isActive } = req.body;
+    
+    if (isActive === undefined || typeof isActive !== 'boolean') {
+      throw AppError.badRequest('isActive must be a boolean value');
+    }
+    
+    const language = await LanguageService.updateLanguageActiveStatus(req.params.id, isActive);
+    
+    sendSuccess(res, language, `Language status updated to ${isActive ? 'active' : 'inactive'} successfully`);
   });
 
   /**

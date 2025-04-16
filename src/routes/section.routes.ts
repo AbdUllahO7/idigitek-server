@@ -9,6 +9,7 @@ router.get('/', SectionController.getAllSections);
 router.get('/:id', SectionController.getSectionById);
 router.put('/:id', SectionController.updateSection);
 router.delete('/:id', SectionController.deleteSection);
+router.patch('/:id/status', SectionController.updateSectionStatus);
 
 // Element relationship routes
 router.get('/:id/elements', SectionController.getSectionElements);

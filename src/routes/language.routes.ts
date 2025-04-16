@@ -58,6 +58,9 @@ router.put(
   authenticate,
   LanguageController.updateLanguage
 );
+router.patch('/:id/status', LanguageController.updateLanguageStatus);
+
+
 
 /**
  * @route   DELETE /api/languages/:id

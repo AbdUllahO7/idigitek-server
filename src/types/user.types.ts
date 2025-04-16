@@ -3,6 +3,7 @@ import { Document } from 'mongoose';
 export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
+  SUPER_ADMIN = "superAdmin"
 }
 
 export enum UserStatus {

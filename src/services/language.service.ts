@@ -27,7 +27,7 @@ class LanguageService {
         }
       }
       
-      // Create new language
+      // Create new language (isActive will default to false)
       const language = new LanguagesModel(languageData);
       return await language.save();
     } catch (error) {
@@ -157,6 +157,35 @@ class LanguageService {
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw AppError.badRequest('Failed to update language', error);
+    }
+  }
+
+  /**
+   * Update only the isActive status of a language
+   * @param id The language ID
+   * @param isActive The new isActive status
+   * @returns Promise with the updated language
+   */
+  async updateLanguageActiveStatus(id: string, isActive: boolean): Promise<ILanguages> {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw AppError.validation('Invalid language ID format');
+      }
+      
+      const language = await LanguagesModel.findByIdAndUpdate(
+        id,
+        { $set: { isActive } },
+        { new: true, runValidators: true }
+      ).populate('subSections');
+      
+      if (!language) {
+        throw AppError.notFound(`Language with ID ${id} not found`);
+      }
+      
+      return language;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw AppError.badRequest('Failed to update language active status', error);
     }
   }
 

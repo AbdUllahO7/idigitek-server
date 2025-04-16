@@ -38,7 +38,7 @@ const userSchema = new Schema<IUser>(
     status: {
       type: String,
       enum: Object.values(UserStatus),
-      default: UserStatus.PENDING,
+      default: UserStatus.ACTIVE,
     },
     refreshToken: {
       type: String,
