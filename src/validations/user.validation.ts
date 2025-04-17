@@ -4,6 +4,9 @@ import { UserRole, UserStatus } from '../types/user.types';
 /**
  * Validation rules for updating user profile
  */
+/**
+ * Validation rules for updating user profile (for current user)
+ */
 export const updateProfileValidator = [
   body('firstName')
     .optional()
@@ -16,7 +19,68 @@ export const updateProfileValidator = [
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('Last name must be between 2 and 50 characters'),
+    
+  body('email')
+    .optional()
+    .trim()
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+    
+  body('password')
+    .optional()
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long'),
 ];
+
+/**
+ * Validation rules for updating any user (admin only)
+ */
+export const updateUserValidator = [
+  param('id')
+    .trim()
+    .notEmpty()
+    .withMessage('User ID is required')
+    .isMongoId()
+    .withMessage('Invalid user ID format'),
+    
+  body('firstName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('First name must be between 2 and 50 characters'),
+    
+  body('lastName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be between 2 and 50 characters'),
+    
+  body('email')
+    .optional()
+    .trim()
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+    
+  body('role')
+    .optional()
+    .trim()
+    .isIn(Object.values(UserRole))
+    .withMessage(`Role must be one of: ${Object.values(UserRole).join(', ')}`),
+    
+  body('status')
+    .optional()
+    .trim()
+    .isIn(Object.values(UserStatus))
+    .withMessage(`Status must be one of: ${Object.values(UserStatus).join(', ')}`),
+    
+  body('password')
+    .optional()
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long'),
+];
+
 
 /**
  * Validation rules for updating user role (admin only)
@@ -108,4 +172,46 @@ export const getUserByIdValidator = [
     .withMessage('User ID is required')
     .isMongoId()
     .withMessage('Invalid user ID format'),
+];
+
+export const createUserValidator = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+    
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long'),
+    
+  body('firstName')
+    .trim()
+    .notEmpty()
+    .withMessage('First name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('First name must be between 2 and 50 characters'),
+    
+  body('lastName')
+    .trim()
+    .notEmpty()
+    .withMessage('Last name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be between 2 and 50 characters'),
+    
+  body('role')
+    .optional()
+    .trim()
+    .isIn(Object.values(UserRole))
+    .withMessage(`Role must be one of: ${Object.values(UserRole).join(', ')}`),
+    
+  body('status')
+    .optional()
+    .trim()
+    .isIn(Object.values(UserStatus))
+    .withMessage(`Status must be one of: ${Object.values(UserStatus).join(', ')}`),
 ];

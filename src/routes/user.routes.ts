@@ -1,11 +1,21 @@
 import express from 'express';
 import { validate } from '../middleware/validator.middleware';
 import { authenticate, isAdmin, isOwnerOrAdmin } from '../middleware/auth.middleware';
-import { getUserByIdValidator, getUsersValidator, updateProfileValidator, updateUserRoleValidator, updateUserStatusValidator } from '../validations/user.validation';
+import { 
+  createUserValidator, 
+  getUserByIdValidator, 
+  getUsersValidator, 
+  updateProfileValidator, 
+  updateUserValidator,
+  updateUserRoleValidator, 
+  updateUserStatusValidator 
+} from '../validations/user.validation';
 import userController from '../controllers/user.controller';
 
-
 const router = express.Router();
+
+// IMPORTANT: Order matters for route definitions
+// More specific routes should come before general routes with params
 
 /**
  * @route   GET /api/v1/users/me
@@ -20,7 +30,7 @@ router.get(
 
 /**
  * @route   PUT /api/v1/users/me
- * @desc    Update user profile
+ * @desc    Update current user profile
  * @access  Private
  */
 router.put(
@@ -44,16 +54,16 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/users/:id
- * @desc    Get user by ID
- * @access  Admin or Owner
+ * @route   POST /api/v1/users
+ * @desc    Create a new user
+ * @access  Admin
  */
-router.get(
-  '/:id',
+router.post(
+  '/',
   authenticate,
-  isOwnerOrAdmin,
-  validate(getUserByIdValidator),
-  userController.getUserById
+  isAdmin,
+  validate(createUserValidator),
+  userController.createUser
 );
 
 /**
@@ -80,6 +90,32 @@ router.put(
   isAdmin,
   validate(updateUserStatusValidator),
   userController.updateUserStatus
+);
+
+/**
+ * @route   GET /api/v1/users/:id
+ * @desc    Get user by ID
+ * @access  Admin or Owner
+ */
+router.get(
+  '/:id',
+  authenticate,
+  isOwnerOrAdmin,
+  validate(getUserByIdValidator),
+  userController.getUserById
+);
+
+/**
+ * @route   PUT /api/v1/users/:id
+ * @desc    Update any user
+ * @access  Admin
+ */
+router.put(
+  '/:id',
+  authenticate,
+  isAdmin,
+  validate(updateUserValidator),
+  userController.updateUser
 );
 
 /**

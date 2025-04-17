@@ -10,9 +10,9 @@ import userService from '../services/user.service';
  * Handles all user-related requests
  */
 class UserController {
-  /**
-   * Get current user profile
-   */
+    /**
+     * Get current user profile
+     */
   getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user?.id) {
       throw AppError.badRequest('User ID is required');
@@ -23,6 +23,77 @@ class UserController {
     return sendSuccess(res, user, 'User profile retrieved successfully');
   });
 
+ /**
+ * Create a new user (superAdmin only)
+ */
+  createUser = asyncHandler(async (req: Request, res: Response) => {
+    const userData = {
+      email: req.body.email,
+      password: req.body.password,
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      role: req.body.role as UserRole | undefined,
+      status: req.body.status as UserStatus | undefined,
+    };
+    
+    // Check if trying to create a superAdmin
+    if (userData.role === UserRole.SUPER_ADMIN) {
+      // Check if a superAdmin already exists
+      const existingSuperAdmin = await userService.checkSuperAdminExists();
+      if (existingSuperAdmin) {
+        throw AppError.validation('A SuperAdmin user already exists in the system');
+      }
+    }
+    
+    const newUser = await userService.createUser(userData);
+    return sendSuccess(res, newUser, 'User created successfully', 201);
+  });
+
+
+
+ /**
+ * Update any user (admin only)
+ */
+updateUser = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.params.id;
+  
+  // Get all update fields from request body
+  const updateData = {
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
+    email: req.body.email,
+    role: req.body.role as UserRole,
+    status: req.body.status as UserStatus,
+    password: req.body.password,
+  };
+  
+  // Filter out undefined values
+  Object.keys(updateData).forEach(key => {
+    if (updateData[key] === undefined) {
+      delete updateData[key];
+    }
+  });
+  
+  // Check if trying to update to superAdmin
+  if (updateData.role === UserRole.SUPER_ADMIN) {
+    // Check if a superAdmin already exists
+    const existingSuperAdmin = await userService.checkSuperAdminExists();
+    if (existingSuperAdmin) {
+      // Check if this user is already the superAdmin (in which case, we'll allow the update)
+      const currentUser = await userService.getUserById(userId);
+      if (currentUser.role !== UserRole.SUPER_ADMIN) {
+        throw AppError.validation('A SuperAdmin user already exists in the system');
+      }
+    }
+  }
+  
+  const updatedUser = await userService.updateUser(userId, updateData);
+  return sendSuccess(res, updatedUser, 'User updated successfully');
+});
+  
+
+
+
   /**
    * Update user profile
    */
@@ -31,14 +102,25 @@ class UserController {
       throw AppError.badRequest('User ID is required');
     }
     
+    // Get all update fields from request body
     const updateData = {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
+      email: req.body.email,
+      password: req.body.password,
     };
+    
+    // Filter out undefined values
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
+      }
+    });
     
     const updatedUser = await userService.updateProfile(req.user.id, updateData);
     return sendSuccess(res, updatedUser, 'Profile updated successfully');
   });
+  
 
   /**
    * Get user by ID (admin only)
@@ -72,17 +154,33 @@ class UserController {
     );
   });
 
-  /**
-   * Update user role (admin only)
-   */
-  updateUserRole = asyncHandler(async (req: Request, res: Response) => {
-    const updatedUser = await userService.updateUserRole(
-      req.params.id,
-      req.body.role as UserRole
-    );
-    
-    return sendSuccess(res, updatedUser, 'User role updated successfully');
-  });
+ 
+/**
+ * Update user role (admin only)
+ */
+updateUserRole = asyncHandler(async (req: Request, res: Response) => {
+  const newRole = req.body.role as UserRole;
+  
+  // Check if trying to update to superAdmin
+  if (newRole === UserRole.SUPER_ADMIN) {
+    // Check if a superAdmin already exists
+    const existingSuperAdmin = await userService.checkSuperAdminExists();
+    if (existingSuperAdmin) {
+      // Check if this user is already the superAdmin (in which case, we'll allow the update)
+      const currentUser = await userService.getUserById(req.params.id);
+      if (currentUser.role !== UserRole.SUPER_ADMIN) {
+        throw AppError.validation('A SuperAdmin user already exists in the system');
+      }
+    }
+  }
+  
+  const updatedUser = await userService.updateUserRole(
+    req.params.id,
+    newRole
+  );
+  
+  return sendSuccess(res, updatedUser, 'User role updated successfully');
+});
 
   /**
    * Update user status (admin only)

@@ -12,6 +12,70 @@ class UserService {
     return await UserModel.countDocuments();
   };
 
+  
+  /**
+   * Create a new user (admin only)
+   */
+  createUser = async (
+    userData: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      role?: UserRole;
+      status?: UserStatus;
+    }
+  ): Promise<IUserWithoutPassword> => {
+    // Check if email already exists
+    const existingUser = await UserModel.findOne({ email: userData.email.toLowerCase() });
+    if (existingUser) {
+      throw AppError.badRequest('Email already in use', { email: userData.email });
+    }
+
+    // Validate data
+    if (userData.firstName.length < 2 || userData.firstName.length > 50) {
+      throw AppError.validation('First name must be between 2 and 50 characters');
+    }
+    
+    if (userData.lastName.length < 2 || userData.lastName.length > 50) {
+      throw AppError.validation('Last name must be between 2 and 50 characters');
+    }
+
+    if (userData.password.length < 8) {
+      throw AppError.validation('Password must be at least 8 characters long');
+    }
+
+    // Create new user
+    const user = new UserModel({
+      email: userData.email.toLowerCase(),
+      password: userData.password, // Password will be hashed in the model's pre-save hook
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      role: userData.role || UserRole.USER,
+      status: userData.status || UserStatus.ACTIVE,
+      isEmailVerified: false, // Default to false, can be changed by admins if needed
+    });
+
+    try {
+      await user.save();
+    } catch (error) {
+      throw AppError.database('Failed to create user', { error: error.message });
+    }
+
+    // Return created user without password
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      status: user.status,
+      isEmailVerified: user.isEmailVerified,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  };
+
   /**
    * Get user by ID
    */
@@ -47,14 +111,104 @@ class UserService {
     return this.getUserById(userId);
   };
 
-  /**
-   * Update user profile
-   */
+/**
+ * Update any user (admin only)
+ */
+updateUser = async (
+  userId: string,
+  updateData: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: UserRole;
+    status?: UserStatus;
+    password?: string;
+  }
+): Promise<IUserWithoutPassword> => {
+  // Validate ID format
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw AppError.validation('Invalid ID format');
+  }
+
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    throw AppError.notFound('User not found', { userId });
+  }
+
+  // Validate email if it's being updated
+  if (updateData.email !== undefined) {
+    // Check if email already exists (but ignore if it's the same user)
+    const existingUser = await UserModel.findOne({ 
+      email: updateData.email.toLowerCase(),
+      _id: { $ne: userId } // Exclude current user
+    });
+    
+    if (existingUser) {
+      throw AppError.validation('Email already in use', { email: updateData.email });
+    }
+  }
+
+  // Update fields if provided
+  if (updateData.firstName !== undefined) {
+    user.firstName = updateData.firstName;
+  }
+  
+  if (updateData.lastName !== undefined) {
+    user.lastName = updateData.lastName;
+  }
+  
+  if (updateData.email !== undefined) {
+    user.email = updateData.email.toLowerCase();
+    
+    // Reset email verification if email changes
+    if (user.email !== updateData.email.toLowerCase()) {
+      user.isEmailVerified = false;
+    }
+  }
+  
+  if (updateData.role !== undefined) {
+    user.role = updateData.role;
+  }
+  
+  if (updateData.status !== undefined) {
+    user.status = updateData.status;
+  }
+  
+  if (updateData.password !== undefined && updateData.password.trim() !== '') {
+    user.password = updateData.password; // This will be hashed by the pre-save hook
+  }
+
+  try {
+    await user.save();
+  } catch (error) {
+    throw AppError.database('Failed to update user', { error: error.message });
+  }
+
+  // Return updated user without password
+  return {
+    id: user._id.toString(),
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role,
+    status: user.status,
+    isEmailVerified: user.isEmailVerified,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+};
+
+
+/**
+ * Update user profile (for the current user)
+ */
   updateProfile = async (
     userId: string,
     updateData: {
       firstName?: string;
       lastName?: string;
+      email?: string;
+      password?: string;
     }
   ): Promise<IUserWithoutPassword> => {
     const user = await UserModel.findById(userId);
@@ -62,27 +216,44 @@ class UserService {
       throw AppError.notFound('User not found', { userId });
     }
 
-    // Validate data
-    if (updateData.firstName && (updateData.firstName.length < 2 || updateData.firstName.length > 50)) {
-      throw AppError.validation('First name must be between 2 and 50 characters');
-    }
-    
-    if (updateData.lastName && (updateData.lastName.length < 2 || updateData.lastName.length > 50)) {
-      throw AppError.validation('Last name must be between 2 and 50 characters');
+    // Validate email if it's being updated
+    if (updateData.email !== undefined) {
+      // Check if email already exists (but ignore if it's the same user)
+      const existingUser = await UserModel.findOne({ 
+        email: updateData.email.toLowerCase(),
+        _id: { $ne: userId } // Exclude current user
+      });
+      
+      if (existingUser) {
+        throw AppError.badRequest('Email already in use', { email: updateData.email });
+      }
     }
 
     // Update fields if provided
-    if (updateData.firstName) {
+    if (updateData.firstName !== undefined) {
       user.firstName = updateData.firstName;
     }
-    if (updateData.lastName) {
+    
+    if (updateData.lastName !== undefined) {
       user.lastName = updateData.lastName;
+    }
+    
+    if (updateData.email !== undefined) {
+      // Only update if the email is actually different
+      if (user.email !== updateData.email.toLowerCase()) {
+        user.email = updateData.email.toLowerCase();
+        user.isEmailVerified = false;
+      }
+    }
+    
+    if (updateData.password !== undefined && updateData.password.trim() !== '') {
+      user.password = updateData.password; // This will be hashed by the pre-save hook
     }
 
     try {
       await user.save();
     } catch (error) {
-      throw AppError.database('Failed to update user', { error: error.message });
+      throw AppError.database('Failed to update user profile', { error: error.message });
     }
 
     // Return updated user without password
@@ -98,7 +269,6 @@ class UserService {
       updatedAt: user.updatedAt,
     };
   };
-
   /**
    * Get all users with pagination and filtering (admin only)
    */
@@ -286,6 +456,16 @@ class UserService {
       throw AppError.database('Failed to delete user', { error: error.message });
     }
   };
+
+  /**
+ * Check if a SuperAdmin user already exists in the system
+ */
+    checkSuperAdminExists = async (): Promise<boolean> => {
+      const count = await UserModel.countDocuments({ role: UserRole.SUPER_ADMIN });
+      return count > 0;
+    };
 }
+
+
 
 export default new UserService();
