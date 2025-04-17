@@ -55,10 +55,10 @@ export const isAdmin = (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {
       throw AppError.authentication('Authentication required');
     }
-
-    if (req.user.role !== UserRole.ADMIN) {
-      throw AppError.authorization('Admin role required', {
-        requiredRole: UserRole.ADMIN,
+    console.log("req.user.role ---------------------------------------------------------------------------------" , req.user.role)
+    if (req.user.role !== UserRole.SUPER_ADMIN) {
+      throw AppError.authorization('super Admin role required', {
+        requiredRole: UserRole.SUPER_ADMIN,
         userRole: req.user.role
       });
     }
