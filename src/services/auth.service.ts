@@ -99,6 +99,10 @@ class AuthService {
       throw new AppError('Account inactive. Please activate your account.', 403);
     }
 
+    if (user.status === UserStatus.PENDING) {
+      throw new AppError('Account PENDING. Please activate your account.', 403);
+    }
+
     // Reset failed login attempts on successful login
     if (user.failedLoginAttempts > 0) {
       user.failedLoginAttempts = 0;
