@@ -460,8 +460,8 @@ updateUser = async (
   /**
  * Check if a SuperAdmin user already exists in the system
  */
-    checkSuperAdminExists = async (): Promise<boolean> => {
-      const count = await UserModel.countDocuments({ role: UserRole.SUPER_ADMIN });
+    checkSuperAdminsExists = async (): Promise<boolean> => {
+      const count = await UserModel.countDocuments({  role : UserRole.OWNER });
       return count > 0;
     };
 }

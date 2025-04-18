@@ -1,15 +1,30 @@
+// controllers/SubSectionController.ts
 import { Request, Response } from 'express';
-import SectionElementService from '../services/sectionElement.service';
-import subSectionService from '../services/subSection.service';
+import { SubSectionService } from '../services/subSection.service';
 
-class SubSectionController {
-  /**
-   * Create a new subsection
-   * @route POST /api/subsections
-   */
+const subSectionService = new SubSectionService();
+
+export class SubSectionController {
+  // Create a new subsection
   async createSubSection(req: Request, res: Response) {
     try {
-      const subsection = await subSectionService.createSubSection(req.body);
+      const { name, description, sectionId, isActive, order } = req.body;
+      
+      if (!sectionId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Section ID is required'
+        });
+      }
+      
+      const subsection = await subSectionService.createSubSection({
+        name,
+        description,
+        sectionId,
+        isActive,
+        order
+      });
+      
       return res.status(201).json({
         success: true,
         data: subsection
@@ -17,22 +32,26 @@ class SubSectionController {
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Error creating subsection'
+        message: error.message
       });
     }
   }
-  
-  /**
-   * Get all subsections
-   * @route GET /api/subsections
-   */
+
+  // Get all subsections
   async getAllSubSections(req: Request, res: Response) {
     try {
-      const activeOnly = req.query.activeOnly !== 'false';
-      const limit = parseInt(req.query.limit as string) || 100;
-      const skip = parseInt(req.query.skip as string) || 0;
+      const { sectionId, isActive } = req.query;
+      const query: any = {};
       
-      const subsections = await subSectionService.getAllSubSections(activeOnly, limit, skip);
+      if (sectionId) {
+        query.sectionId = sectionId;
+      }
+      
+      if (isActive !== undefined) {
+        query.isActive = isActive === 'true';
+      }
+      
+      const subsections = await subSectionService.getAllSubSections(query);
       
       return res.status(200).json({
         success: true,
@@ -42,19 +61,15 @@ class SubSectionController {
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Error fetching subsections'
+        message: error.message
       });
     }
   }
-  
-  /**
-   * Get subsection by ID
-   * @route GET /api/subsections/:id
-   */
+
+  // Get subsection by ID
   async getSubSectionById(req: Request, res: Response) {
     try {
-      const populateParents = req.query.populate !== 'false';
-      const subsection = await subSectionService.getSubSectionById(req.params.id, populateParents);
+      const subsection = await subSectionService.getSubSectionById(req.params.id);
       
       return res.status(200).json({
         success: true,
@@ -63,18 +78,15 @@ class SubSectionController {
     } catch (error: any) {
       return res.status(404).json({
         success: false,
-        message: error.message || 'Subsection not found'
+        message: error.message
       });
     }
   }
-  
-  /**
-   * Update subsection by ID
-   * @route PUT /api/subsections/:id
-   */
+
+  // Update subsection
   async updateSubSection(req: Request, res: Response) {
     try {
-      const subsection = await subSectionService.updateSubSectionById(req.params.id, req.body);
+      const subsection = await subSectionService.updateSubSection(req.params.id, req.body);
       
       return res.status(200).json({
         success: true,
@@ -83,113 +95,52 @@ class SubSectionController {
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Error updating subsection'
+        message: error.message
       });
     }
   }
-  
-  /**
-   * Delete subsection by ID
-   * @route DELETE /api/subsections/:id
-   */
+
+  // Delete subsection
   async deleteSubSection(req: Request, res: Response) {
     try {
-      const hardDelete = req.query.hardDelete === 'true';
-      const result = await subSectionService.deleteSubSectionById(req.params.id, hardDelete);
-      
-      return res.status(200).json(result);
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message || 'Error deleting subsection'
-      });
-    }
-  }
-  
-  /**
-   * Get all elements for a subsection
-   * @route GET /api/subsections/:id/elements
-   */
-  async getSubSectionElements(req: Request, res: Response) {
-    try {
-      const activeOnly = req.query.activeOnly !== 'false';
-      const result = await SectionElementService.getElementsForParent(
-        req.params.id, 
-        'subsection', 
-        activeOnly
-      );
+      const result = await subSectionService.deleteSubSection(req.params.id);
       
       return res.status(200).json({
         success: true,
-        count: result.elements.length,
         data: result
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Error fetching subsection elements'
+        message: error.message
       });
     }
   }
-  
-  /**
-   * Add element to subsection
-   * @route POST /api/subsections/:id/elements
-   */
-  async addElementToSubSection(req: Request, res: Response) {
+
+  // Get subsection with content by ID and language
+  async getSubSectionWithContent(req: Request, res: Response) {
     try {
-      const { elementId, order, config } = req.body;
+      const { id } = req.params;
+      const { languageId } = req.query;
       
-      if (!elementId) {
+      if (!languageId) {
         return res.status(400).json({
           success: false,
-          message: 'Element ID is required'
+          message: 'Language ID is required'
         });
       }
       
-      const relation = await SectionElementService.associateElement({
-        element: elementId,
-        parent: req.params.id,
-        parentType: 'subsection',
-        order,
-        config
-      });
+      const subsection = await subSectionService.getSubSectionWithContent(id, languageId as string);
       
-      return res.status(201).json({
+      return res.status(200).json({
         success: true,
-        data: relation
+        data: subsection
       });
     } catch (error: any) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: error.message || 'Error adding element to subsection'
+        message: error.message
       });
     }
   }
-  
-  /**
-   * Remove element from subsection
-   * @route DELETE /api/subsections/:id/elements/:elementId
-   */
-  async removeElementFromSubSection(req: Request, res: Response) {
-    try {
-      const hardDelete = req.query.hardDelete === 'true';
-      const result = await SectionElementService.removeAssociation(
-        req.params.elementId,
-        req.params.id,
-        'subsection',
-        hardDelete
-      );
-      
-      return res.status(200).json(result);
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message || 'Error removing element from subsection'
-      });
-    }
-  }
-
 }
-
-export default new SubSectionController();

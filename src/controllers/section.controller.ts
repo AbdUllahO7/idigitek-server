@@ -1,164 +1,135 @@
+// controllers/SectionController.ts
 import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
-import SectionService from '../services/section.service';
-import SectionElementService from '../services/sectionElement.service';
-import mongoose from 'mongoose';
+import { SectionService } from '../services/section.service';
 import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 
-class SectionController {
+/**
+ * Section Controller
+ * Handles all section-related requests
+ */
+export class SectionController {
+  private sectionService: SectionService;
+
+  constructor() {
+    this.sectionService = new SectionService();
+  }
+
   /**
    * Create a new section
-   * @route POST /api/sections
    */
   createSection = asyncHandler(async (req: Request, res: Response) => {
-    const section = await SectionService.createSection(req.body);
+    const { name, description, image, isActive, order } = req.body;
+    
+    if (!name) {
+      throw AppError.badRequest('Section name is required');
+    }
+    
+    const section = await this.sectionService.createSection({
+      name,
+      description,
+      image,
+      isActive,
+      order
+    });
+    
     return sendSuccess(res, section, 'Section created successfully', 201);
   });
 
   /**
-   * Get all sections
-   * @route GET /api/sections
+   * Get all sections with optional filtering
    */
   getAllSections = asyncHandler(async (req: Request, res: Response) => {
-    const limit = parseInt(req.query.limit as string) || 100;
-    const skip = parseInt(req.query.skip as string) || 0;
+    const { isActive } = req.query;
+    const query: any = {};
     
-    const sections = await SectionService.getAllSections(false, limit, skip);
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true';
+    }
     
-    // Send the sections array directly instead of wrapping it in an object
-    return sendSuccess(res, sections, 'Sections retrieved successfully');
+    const sections = await this.sectionService.getAllSections(query);
+    
+    return sendSuccess(res, {
+      count: sections.length,
+      data: sections
+    }, 'Sections retrieved successfully');
   });
 
   /**
    * Get section by ID
-   * @route GET /api/sections/:id
    */
   getSectionById = asyncHandler(async (req: Request, res: Response) => {
-    const populateSubSections = req.query.populate !== 'false';
-    const section = await SectionService.getSectionById(req.params.id, populateSubSections);
+    const { id } = req.params;
+    
+    if (!id) {
+      throw AppError.badRequest('Section ID is required');
+    }
+    
+    const section = await this.sectionService.getSectionById(id);
+    
+    if (!section) {
+      throw AppError.notFound('Section not found');
+    }
     
     return sendSuccess(res, section, 'Section retrieved successfully');
   });
 
   /**
-   * Update section by ID
-   * @route PUT /api/sections/:id
+   * Update section
    */
   updateSection = asyncHandler(async (req: Request, res: Response) => {
-    const section = await SectionService.updateSectionById(req.params.id, req.body);
+    const { id } = req.params;
+    
+    if (!id) {
+      throw AppError.badRequest('Section ID is required');
+    }
+    
+    const section = await this.sectionService.updateSection(id, req.body);
+    
+    if (!section) {
+      throw AppError.notFound('Section not found');
+    }
     
     return sendSuccess(res, section, 'Section updated successfully');
   });
 
   /**
-   * Update only the isActive status of a section
-   * @route PATCH /api/sections/:id/status
-   */
-  updateSectionStatus = asyncHandler(async (req: Request, res: Response) => {
-    const { isActive } = req.body;
-    
-    if (isActive === undefined || typeof isActive !== 'boolean') {
-      throw AppError.badRequest('isActive must be a boolean value');
-    }
-    
-    const section = await SectionService.updateSectionActiveStatus(req.params.id, isActive);
-    
-    return sendSuccess(res, section, `Section status updated to ${isActive ? 'active' : 'inactive'} successfully`);
-  });
-
-  /**
-   * Delete section by ID
-   * @route DELETE /api/sections/:id
+   * Delete section
    */
   deleteSection = asyncHandler(async (req: Request, res: Response) => {
-    const result = await SectionService.deleteSectionById(req.params.id, true);
+    const { id } = req.params;
     
-    return sendSuccess(res, result,  'Section deleted successfully');
+    if (!id) {
+      throw AppError.badRequest('Section ID is required');
+    }
+    
+    const result = await this.sectionService.deleteSection(id);
+    
+    return sendSuccess(res, result, 'Section deleted successfully');
   });
 
   /**
-   * Get all elements for a section
-   * @route GET /api/sections/:id/elements
+   * Get section with content by ID and language
    */
-  getSectionElements = asyncHandler(async (req: Request, res: Response) => {
-    const activeOnly = req.query.activeOnly !== 'false';
-    const result = await SectionElementService.getElementsForParent(
-      req.params.id, 
-      'section', 
-      activeOnly
-    );
+  getSectionWithContent = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { languageId } = req.query;
     
-    // For this endpoint, keeping the structure with count since it returns a specific format with elements
-    return sendSuccess(res, {
-      count: result.elements.length,
-      data: result
-    }, 'Section elements retrieved successfully');
-  });
-
-  /**
-   * Add element to section
-   * @route POST /api/sections/:id/elements
-   */
-  addElementToSection = asyncHandler(async (req: Request, res: Response) => {
-    const { elementId, order, config } = req.body;
-    
-    if (!elementId) {
-      throw AppError.badRequest('Element ID is required');
+    if (!id) {
+      throw AppError.badRequest('Section ID is required');
     }
     
-    // Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      throw AppError.validation('Invalid section ID format');
+    if (!languageId) {
+      throw AppError.badRequest('Language ID is required');
     }
     
-    if (!mongoose.Types.ObjectId.isValid(elementId)) {
-      throw AppError.validation('Invalid element ID format');
+    const section = await this.sectionService.getSectionWithContent(id, languageId as string);
+    
+    if (!section) {
+      throw AppError.notFound('Section not found');
     }
     
-    // Convert string ID to ObjectId
-    const sectionId = new mongoose.Types.ObjectId(req.params.id);
-    const elemId = new mongoose.Types.ObjectId(elementId);
-    
-    const relation = await SectionElementService.associateElement({
-      element: elemId,
-      parent: sectionId,
-      parentType: 'section',
-      order,
-      config
-    });
-    
-    return sendSuccess(res, relation, 'Element added to section successfully', 201);
-  });
-    
-  /**
-   * Remove element from section
-   * @route DELETE /api/sections/:id/elements/:elementId
-   */
-  removeElementFromSection = asyncHandler(async (req: Request, res: Response) => {
-    const hardDelete = req.query.hardDelete === 'true';
-    
-    // Validate ID formats
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      throw AppError.validation('Invalid section ID format');
-    }
-    
-    if (!mongoose.Types.ObjectId.isValid(req.params.elementId)) {
-      throw AppError.validation('Invalid element ID format');
-    }
-    
-    // Convert string IDs to ObjectIds
-    const sectionId = new mongoose.Types.ObjectId(req.params.id);
-    const elementId = new mongoose.Types.ObjectId(req.params.elementId);
-    
-    const result = await SectionElementService.removeAssociation(
-      elementId,
-      sectionId,
-      'section',
-      hardDelete
-    );
-    
-    return sendSuccess(res, result, `Element ${hardDelete ? 'removed from' : 'deactivated in'} section successfully`);
+    return sendSuccess(res, section, 'Section with content retrieved successfully');
   });
 }
 
-export default new SectionController();

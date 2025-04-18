@@ -1,134 +1,113 @@
+// controllers/LanguageController.ts
 import { Request, Response } from 'express';
-import { sendSuccess } from '../utils/responseHandler';
-import LanguageService from '../services/language.service';
-import mongoose from 'mongoose';
-import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
+import { LanguageService } from '../services/language.service';
 
-class LanguageController {
-  /**
-   * Create a new language
-   * @route POST /api/languages
-   */
-  createLanguage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const language = await LanguageService.createLanguage(req.body);
-    sendSuccess(res, language, 'Language created successfully', 201);
-  });
+const languageService = new LanguageService();
 
-  /**
-   * Get all languages
-   * @route GET /api/languages
-   */
-  getAllLanguages = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const limit = parseInt(req.query.limit as string) || 100;
-    const skip = parseInt(req.query.skip as string) || 0;
-    
-    const languages = await LanguageService.getAllLanguages(limit, skip);
-    
-    // Send the languages array directly instead of wrapping it in an object
-    sendSuccess(res, languages, 'Languages retrieved successfully');
-  });
-
-  /**
-   * Get language by ID
-   * @route GET /api/languages/:id
-   */
-  getLanguageById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const populateSubSections = req.query.populate !== 'false';
-    const language = await LanguageService.getLanguageById(req.params.id, populateSubSections);
-    
-    sendSuccess(res, language, 'Language retrieved successfully');
-  });
-
-  /**
-   * Get language by code (languageID)
-   * @route GET /api/languages/code/:languageID
-   */
-  getLanguageByCode = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const populateSubSections = req.query.populate !== 'false';
-    const language = await LanguageService.getLanguageByCode(req.params.languageID, populateSubSections);
-    
-    sendSuccess(res, language, 'Language retrieved successfully');
-  });
-
-  /**
-   * Update language by ID
-   * @route PUT /api/languages/:id
-   */
-  updateLanguage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const language = await LanguageService.updateLanguageById(req.params.id, req.body);
-    
-    sendSuccess(res, language, 'Language updated successfully');
-  });
-
-  /**
-   * Update only the isActive status of a language
-   * @route PATCH /api/languages/:id/status
-   */
-  updateLanguageStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { isActive } = req.body;
-    
-    if (isActive === undefined || typeof isActive !== 'boolean') {
-      throw AppError.badRequest('isActive must be a boolean value');
+export class LanguageController {
+  // Create a new language
+  async createLanguage(req: Request, res: Response) {
+    try {
+      const { name, code, isActive } = req.body;
+      
+      if (!name || !code) {
+        return res.status(400).json({
+          success: false,
+          message: 'Name and code are required'
+        });
+      }
+      
+      const language = await languageService.createLanguage({
+        name,
+        code,
+        isActive
+      });
+      
+      return res.status(201).json({
+        success: true,
+        data: language
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
     }
-    
-    const language = await LanguageService.updateLanguageActiveStatus(req.params.id, isActive);
-    
-    sendSuccess(res, language, `Language status updated to ${isActive ? 'active' : 'inactive'} successfully`);
-  });
+  }
 
-  /**
-   * Delete language by ID
-   * @route DELETE /api/languages/:id
-   */
-  deleteLanguage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const result = await LanguageService.deleteLanguageById(req.params.id);
-    
-    sendSuccess(res, result, 'Language deleted successfully');
-  });
+  // Get all languages
+  async getAllLanguages(req: Request, res: Response) {
+    try {
+      const { isActive } = req.query;
+      const query: any = {};
+      
+      if (isActive !== undefined) {
+        query.isActive = isActive === 'true';
+      }
+      
+      const languages = await languageService.getAllLanguages(query);
+      
+      return res.status(200).json({
+        success: true,
+        count: languages.length,
+        data: languages
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 
-  /**
-   * Add subSection to language
-   * @route POST /api/languages/:id/subsections
-   */
-  addSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { subSectionId } = req.body;
-    
-    if (!subSectionId) {
-      throw AppError.badRequest('SubSection ID is required');
+  // Get language by ID
+  async getLanguageById(req: Request, res: Response) {
+    try {
+      const language = await languageService.getLanguageById(req.params.id);
+      
+      return res.status(200).json({
+        success: true,
+        data: language
+      });
+    } catch (error: any) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
     }
-    
-    // Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      throw AppError.validation('Invalid language ID format');
-    }
-    
-    if (!mongoose.Types.ObjectId.isValid(subSectionId)) {
-      throw AppError.validation('Invalid subSection ID format');
-    }
-    
-    const language = await LanguageService.addSubSection(req.params.id, subSectionId);
-    
-    sendSuccess(res, language, 'SubSection added to language successfully');
-  });
+  }
 
-  /**
-   * Remove subSection from language
-   * @route DELETE /api/languages/:id/subsections/:subSectionId
-   */
-  removeSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    // Validate ID formats
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      throw AppError.validation('Invalid language ID format');
+  // Update language
+  async updateLanguage(req: Request, res: Response) {
+    try {
+      const language = await languageService.updateLanguage(req.params.id, req.body);
+      
+      return res.status(200).json({
+        success: true,
+        data: language
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
     }
-    
-    if (!mongoose.Types.ObjectId.isValid(req.params.subSectionId)) {
-      throw AppError.validation('Invalid subSection ID format');
+  }
+
+  // Delete language
+  async deleteLanguage(req: Request, res: Response) {
+    try {
+      const result = await languageService.deleteLanguage(req.params.id);
+      
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
     }
-    
-    const language = await LanguageService.removeSubSection(req.params.id, req.params.subSectionId);
-    
-    sendSuccess(res, language, 'SubSection removed from language successfully');
-  });
+  }
 }
-
-export default new LanguageController();

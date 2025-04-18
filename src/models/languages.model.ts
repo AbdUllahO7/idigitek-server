@@ -1,40 +1,39 @@
+// Language.ts
 import mongoose, { Schema } from 'mongoose';
-import { ILanguages } from '../types/languages.types';
 
-const languagesSchema = new Schema<ILanguages>(
+interface ILanguage {
+    name: string;
+    code: string;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const languageSchema = new Schema<ILanguage>(
     {
-        language: {
-            type: String,
-            required: true,
-            unique: true,
-            lowercase: false,
-            trim: true,
-            index: true,
+        name: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+        index: true,
         },
-        languageID: {
-            type: String,
-            required: true,
-            unique: true,
-            lowercase: false,
-            trim: true,
-            index: true,
+        code: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+        index: true,
         },
-        isActive : {
-            type : Boolean,
-            default : false
-
-        },
-        subSections: [{
-            type: Schema.Types.ObjectId,
-            ref: 'SubSection' // Reference to the SubSection model
-        }]
-        },
-        {
-        timestamps: true,
+        isActive: {
+        type: Boolean,
+        default: true,
         }
-    );
-    
-  // Fixed the variable naming conflict (schema vs model)
-const LanguagesModel = mongoose.model<ILanguages>('Languages', languagesSchema);
+    },
+    {
+        timestamps: true,
+    }
+);
 
-export default LanguagesModel;
+const LanguageModel = mongoose.model<ILanguage>('Language', languageSchema);
+export default LanguageModel;

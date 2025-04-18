@@ -1,9 +1,18 @@
-import mongoose, { Schema } from 'mongoose';
-import { ISectionBasicInfo } from '../types/sectionBasicInfo.types';
+import mongoose, { Schema } from "mongoose";
 
-const sectionBasicInfoSchema = new Schema<ISectionBasicInfo>(
+interface ISection {
+  name: string;
+  description: string;
+  image: string;
+  isActive: boolean;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const sectionSchema = new Schema<ISection>(
   {
-    section_name: {
+    name: {
       type: String,
       required: true,
       unique: true,
@@ -14,12 +23,10 @@ const sectionBasicInfoSchema = new Schema<ISectionBasicInfo>(
       type: String,
       trim: true,
       default: ''
-
     },
-    image : {
-      type :String,
-      required : false,
-      default : null
+    image: {
+      type: String,
+      default: null
     },
     isActive: {
       type: Boolean,
@@ -28,18 +35,12 @@ const sectionBasicInfoSchema = new Schema<ISectionBasicInfo>(
     order: {
       type: Number,
       default: 0,
-    },
-    // Reference to subsections
-    subSections: [{
-      type: Schema.Types.ObjectId,
-      ref: 'SubSection'
-    }]
+    }
   },
   {
     timestamps: true,
   }
 );
 
-const SectionBasicInfoModel = mongoose.model<ISectionBasicInfo>('SectionBasicInfo', sectionBasicInfoSchema);
-
-export default SectionBasicInfoModel;
+const SectionModel = mongoose.model<ISection>('Section', sectionSchema);
+export default SectionModel;

@@ -37,9 +37,9 @@ class UserController {
     };
     
     // Check if trying to create a superAdmin
-    if (userData.role === UserRole.SUPER_ADMIN) {
+    if (userData.role === UserRole.SUPER_ADMIN || userData.role === UserRole.OWNER) {
       // Check if a superAdmin already exists
-      const existingSuperAdmin = await userService.checkSuperAdminExists();
+      const existingSuperAdmin = await userService.checkSuperAdminsExists();
       if (existingSuperAdmin) {
         throw AppError.validation('A SuperAdmin user already exists in the system');
       }
@@ -52,7 +52,7 @@ class UserController {
 
 
   /**
-   * Update any user (admin only)
+   * Update any user (OWNER AND SUPER ADMIN )
    */
   updateUser = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.params.id;
@@ -75,14 +75,14 @@ class UserController {
     });
     
     // Check if trying to update to superAdmin
-    if (updateData.role === UserRole.SUPER_ADMIN) {
+    if (updateData.role === UserRole.SUPER_ADMIN || updateData.role === UserRole.OWNER) {
       // Check if a superAdmin already exists
-      const existingSuperAdmin = await userService.checkSuperAdminExists();
-      if (existingSuperAdmin) {
+      const existingSuperAdmins = await userService.checkSuperAdminsExists();
+      if (existingSuperAdmins) {
         // Check if this user is already the superAdmin (in which case, we'll allow the update)
         const currentUser = await userService.getUserById(userId);
-        if (currentUser.role !== UserRole.SUPER_ADMIN) {
-          throw AppError.validation('A SuperAdmin user already exists in the system');
+        if (currentUser.role !== UserRole.OWNER) {
+          throw AppError.validation('A OWNER user already exists in the system');
         }
       }
     }
@@ -162,13 +162,13 @@ updateUserRole = asyncHandler(async (req: Request, res: Response) => {
   const newRole = req.body.role as UserRole;
   
   // Check if trying to update to superAdmin
-  if (newRole === UserRole.SUPER_ADMIN) {
+  if (newRole === UserRole.SUPER_ADMIN || newRole === UserRole.OWNER) {
     // Check if a superAdmin already exists
-    const existingSuperAdmin = await userService.checkSuperAdminExists();
+    const existingSuperAdmin = await userService.checkSuperAdminsExists();
     if (existingSuperAdmin) {
       // Check if this user is already the superAdmin (in which case, we'll allow the update)
       const currentUser = await userService.getUserById(req.params.id);
-      if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      if (currentUser.role !== UserRole.SUPER_ADMIN || currentUser.role !== UserRole.OWNER) {
         throw AppError.validation('A SuperAdmin user already exists in the system');
       }
     }

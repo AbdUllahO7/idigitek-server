@@ -1,18 +1,16 @@
+// routes/subSectionRoutes.ts
 import express from 'express';
-import subSectionController from '../controllers/subSection.controller';
+import { SubSectionController } from '../controllers/subSection.controller';
 
 const router = express.Router();
+const subSectionController = new SubSectionController();
 
-// Base routes for subsections
+// Routes
 router.post('/', subSectionController.createSubSection);
 router.get('/', subSectionController.getAllSubSections);
 router.get('/:id', subSectionController.getSubSectionById);
+router.get('/:id/content', subSectionController.getSubSectionWithContent);
 router.put('/:id', subSectionController.updateSubSection);
 router.delete('/:id', subSectionController.deleteSubSection);
-
-// Element relationship routes
-router.get('/:id/elements', subSectionController.getSubSectionElements);
-router.post('/:id/elements', subSectionController.addElementToSubSection);
-router.delete('/:id/elements/:elementId', subSectionController.removeElementFromSubSection);
 
 export default router;
