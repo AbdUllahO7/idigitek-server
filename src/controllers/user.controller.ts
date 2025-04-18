@@ -168,7 +168,7 @@ updateUserRole = asyncHandler(async (req: Request, res: Response) => {
     if (existingSuperAdmin) {
       // Check if this user is already the superAdmin (in which case, we'll allow the update)
       const currentUser = await userService.getUserById(req.params.id);
-      if (currentUser.role !== UserRole.SUPER_ADMIN || currentUser.role !== UserRole.OWNER) {
+      if (currentUser.role !== UserRole.SUPER_ADMIN && currentUser.role !== UserRole.OWNER) {
         throw AppError.validation('A SuperAdmin user already exists in the system');
       }
     }
