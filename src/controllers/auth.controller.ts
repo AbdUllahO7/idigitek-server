@@ -33,7 +33,6 @@ class AuthController {
    */
   login = asyncHandler(async (req: Request, res: Response) => {
 
-    console.log(req.body)
     // Check if this is the first login and create owner if needed
     if (!this.initialOwnerCreated) {
       try {
