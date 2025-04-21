@@ -20,6 +20,7 @@ export interface ILanguages extends Document {
 export interface ICreateLanguage {
   language: string;
   languageID: string;
+  isActive : boolean
   subSections?: Types.ObjectId[] | string[];
 }
 

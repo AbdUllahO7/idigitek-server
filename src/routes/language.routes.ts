@@ -10,5 +10,5 @@ router.get('/', languageController.getAllLanguages);
 router.get('/:id', languageController.getLanguageById);
 router.put('/:id', languageController.updateLanguage);
 router.delete('/:id', languageController.deleteLanguage);
-
+router.patch('/:id/status', languageController.updateLanguageStatus);
 export default router;

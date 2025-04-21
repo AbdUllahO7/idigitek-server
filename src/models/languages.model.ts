@@ -1,39 +1,38 @@
-// Language.ts
 import mongoose, { Schema } from 'mongoose';
+import { ILanguages } from '../types/languages.types';
 
-interface ILanguage {
-    name: string;
-    code: string;
-    isActive: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-}
-
-const languageSchema = new Schema<ILanguage>(
-    {
-        name: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        index: true,
-        },
-        code: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        index: true,
-        },
-        isActive: {
-        type: Boolean,
-        default: true,
-        }
+const languagesSchema = new Schema<ILanguages>(
+  {
+    language: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: false,
+      trim: true,
+      index: true,
     },
-    {
-        timestamps: true,
-    }
+    languageID: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: false,
+      trim: true,
+      index: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    subSections: [{
+      type: Schema.Types.ObjectId,
+      ref: 'SubSection' // Reference to the SubSection model
+    }]
+  },
+  {
+    timestamps: true,
+  }
 );
 
-const LanguageModel = mongoose.model<ILanguage>('Language', languageSchema);
+const LanguageModel = mongoose.model<ILanguages>('Languages', languagesSchema);
+
 export default LanguageModel;

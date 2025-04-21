@@ -1,19 +1,27 @@
-// services/LanguageService.ts
-
+import mongoose from "mongoose";
 import LanguageModel from "../models/languages.model";
+import { ILanguages, ICreateLanguage, IUpdateLanguage } from "../types/languages.types";
+import { AppError } from "../middleware/errorHandler.middlerware";
 
 export class LanguageService {
   // Create a new language
-  async createLanguage(languageData: {
-    name: string;
-    code: string;
-    isActive?: boolean;
-  }) {
+  async createLanguage(languageData: ICreateLanguage) {
     try {
-      const language = new LanguageModel(languageData);
+      const language = new LanguageModel({
+        language: languageData.language,
+        languageID: languageData.languageID,
+        isActive: languageData.isActive || false,
+        subSections: languageData.subSections || []
+      });
+      
       await language.save();
       return language;
     } catch (error) {
+      if (error.code === 11000) {
+        // Handle duplicate key error
+        const field = Object.keys(error.keyPattern)[0];
+        throw new Error(`Language with this ${field} already exists`);
+      }
       throw error;
     }
   }
@@ -21,7 +29,7 @@ export class LanguageService {
   // Get all languages
   async getAllLanguages(query: any = {}) {
     try {
-      const languages = await LanguageModel.find(query);
+      const languages = await LanguageModel.find(query).populate('subSections');
       return languages;
     } catch (error) {
       throw error;
@@ -31,7 +39,11 @@ export class LanguageService {
   // Get language by ID
   async getLanguageById(id: string) {
     try {
-      const language = await LanguageModel.findById(id);
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error('Invalid language ID format');
+      }
+      
+      const language = await LanguageModel.findById(id).populate('subSections');
       if (!language) {
         throw new Error('Language not found');
       }
@@ -42,18 +54,29 @@ export class LanguageService {
   }
 
   // Update language
-  async updateLanguage(id: string, updateData: any) {
+  async updateLanguage(id: string, updateData: IUpdateLanguage) {
     try {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error('Invalid language ID format');
+      }
+      
       const language = await LanguageModel.findByIdAndUpdate(
         id,
-        updateData,
+        { $set: updateData },
         { new: true, runValidators: true }
-      );
+      ).populate('subSections');
+      
       if (!language) {
         throw new Error('Language not found');
       }
+      
       return language;
     } catch (error) {
+      if (error.code === 11000) {
+        // Handle duplicate key error
+        const field = Object.keys(error.keyPattern)[0];
+        throw new Error(`Language with this ${field} already exists`);
+      }
       throw error;
     }
   }
@@ -61,13 +84,106 @@ export class LanguageService {
   // Delete language
   async deleteLanguage(id: string) {
     try {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error('Invalid language ID format');
+      }
+      
       const language = await LanguageModel.findByIdAndDelete(id);
       if (!language) {
         throw new Error('Language not found');
       }
+      
       return { message: 'Language deleted successfully' };
     } catch (error) {
       throw error;
+    }
+  }
+
+  // Update language active status
+  async updateLanguageActiveStatus(id: string, isActive: boolean): Promise<ILanguages> {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw AppError.validation('Invalid language ID format');
+      }
+      
+      const language = await LanguageModel.findByIdAndUpdate(
+        id,
+        { $set: { isActive } },
+        { new: true, runValidators: true }
+      ).populate('subSections');
+      
+      if (!language) {
+        throw AppError.notFound(`Language with ID ${id} not found`);
+      }
+      
+      return language;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw AppError.badRequest('Failed to update language active status', error);
+    }
+  }
+
+  // Toggle language active status
+  async toggleLanguageStatus(id: string): Promise<ILanguages> {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw AppError.validation('Invalid language ID format');
+      }
+      
+      const language = await LanguageModel.findById(id);
+      
+      if (!language) {
+        throw AppError.notFound(`Language with ID ${id} not found`);
+      }
+      
+      // Toggle the isActive status
+      language.isActive = !language.isActive;
+      
+      await language.save();
+      
+      return language;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw AppError.database('Failed to toggle language status', error);
+    }
+  }
+
+  // Batch update language statuses
+  async batchUpdateLanguageStatuses(updates: { id: string; isActive: boolean }[]): Promise<{ success: boolean; message: string; updatedCount: number }> {
+    try {
+      if (!updates || !Array.isArray(updates) || updates.length === 0) {
+        throw AppError.badRequest('No updates provided');
+      }
+      
+      // Validate all IDs
+      for (const update of updates) {
+        if (!mongoose.Types.ObjectId.isValid(update.id)) {
+          throw AppError.validation(`Invalid language ID format: ${update.id}`);
+        }
+        
+        if (typeof update.isActive !== 'boolean') {
+          throw AppError.validation(`isActive must be a boolean for language ID: ${update.id}`);
+        }
+      }
+      
+      // Prepare bulk operations
+      const bulkOps = updates.map(update => ({
+        updateOne: {
+          filter: { _id: new mongoose.Types.ObjectId(update.id) },
+          update: { $set: { isActive: update.isActive } }
+        }
+      }));
+      
+      const result = await LanguageModel.bulkWrite(bulkOps);
+      
+      return { 
+        success: true, 
+        message: `Updated status for ${result.modifiedCount} languages`, 
+        updatedCount: result.modifiedCount 
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw AppError.database('Failed to update language statuses', error);
     }
   }
 }

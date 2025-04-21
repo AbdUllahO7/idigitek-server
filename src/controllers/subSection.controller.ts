@@ -1,146 +1,131 @@
-// controllers/SubSectionController.ts
 import { Request, Response } from 'express';
-import { SubSectionService } from '../services/subSection.service';
+import { sendSuccess } from '../utils/responseHandler';
+import SubSectionService from '../services/subSection.service';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
+import mongoose from 'mongoose';
 
-const subSectionService = new SubSectionService();
-
-export class SubSectionController {
-  // Create a new subsection
-  async createSubSection(req: Request, res: Response) {
-    try {
-      const { name, description, sectionId, isActive, order } = req.body;
-      
-      if (!sectionId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Section ID is required'
-        });
+class SubSectionController {
+  /**
+   * Create a new subsection
+   * @route POST /api/subsections
+   */
+  createSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const subsection = await SubSectionService.createSubSection(req.body);
+    sendSuccess(res, subsection, 'Subsection created successfully', 201);
+  });
+  
+  /**
+   * Get all subsections
+   * @route GET /api/subsections
+   */
+  getAllSubSections = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const activeOnly = req.query.activeOnly !== 'false';
+    const limit = parseInt(req.query.limit as string) || 100;
+    const skip = parseInt(req.query.skip as string) || 0;
+    const includeContentCount = req.query.includeContentCount === 'true';
+    
+    const subsections = await SubSectionService.getAllSubSections(
+      activeOnly, 
+      limit, 
+      skip,
+      includeContentCount
+    );
+    
+    sendSuccess(res, subsections, 'Subsections retrieved successfully');
+  });
+  
+  /**
+   * Get subsection by ID
+   * @route GET /api/subsections/:id
+   */
+  getSubSectionById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const populateParents = req.query.populate !== 'false';
+    const includeContentElements = req.query.includeContent === 'true';
+    
+    const subsection = await SubSectionService.getSubSectionById(
+      req.params.id, 
+      populateParents,
+      includeContentElements
+    );
+    
+    sendSuccess(res, subsection, 'Subsection retrieved successfully');
+  });
+  
+  /**
+   * Get subsection by slug
+   * @route GET /api/subsections/slug/:slug
+   */
+  getSubSectionBySlug = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const populateParents = req.query.populate !== 'false';
+    const includeContentElements = req.query.includeContent === 'true';
+    
+    const subsection = await SubSectionService.getSubSectionBySlug(
+      req.params.slug, 
+      populateParents,
+      includeContentElements
+    );
+    
+    sendSuccess(res, subsection, 'Subsection retrieved successfully');
+  });
+  
+  /**
+   * Update subsection by ID
+   * @route PUT /api/subsections/:id
+   */
+  updateSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw AppError.validation('Invalid subsection ID format');
+    }
+    
+    const subsection = await SubSectionService.updateSubSectionById(
+      req.params.id, 
+      req.body
+    );
+    
+    sendSuccess(res, subsection, 'Subsection updated successfully');
+  });
+  
+  /**
+   * Delete subsection by ID
+   * @route DELETE /api/subsections/:id
+   */
+  deleteSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw AppError.validation('Invalid subsection ID format');
+    }
+    
+    const hardDelete = req.query.hardDelete === 'true';
+    const result = await SubSectionService.deleteSubSectionById(req.params.id, hardDelete);
+    
+    sendSuccess(res, result, result.message);
+  });
+  
+  /**
+   * Update order of multiple subsections
+   * @route PUT /api/subsections/order
+   */
+  updateSubsectionsOrder = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { subsections } = req.body;
+    
+    if (!subsections || !Array.isArray(subsections) || subsections.length === 0) {
+      throw AppError.badRequest('Valid subsections array is required');
+    }
+    
+    // Validate each subsection in the array
+    subsections.forEach(subsection => {
+      if (!subsection.id || !mongoose.Types.ObjectId.isValid(subsection.id)) {
+        throw AppError.validation(`Invalid subsection ID: ${subsection.id}`);
       }
       
-      const subsection = await subSectionService.createSubSection({
-        name,
-        description,
-        sectionId,
-        isActive,
-        order
-      });
-      
-      return res.status(201).json({
-        success: true,
-        data: subsection
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Get all subsections
-  async getAllSubSections(req: Request, res: Response) {
-    try {
-      const { sectionId, isActive } = req.query;
-      const query: any = {};
-      
-      if (sectionId) {
-        query.sectionId = sectionId;
+      if (typeof subsection.order !== 'number') {
+        throw AppError.validation(`Order must be a number for subsection ID: ${subsection.id}`);
       }
-      
-      if (isActive !== undefined) {
-        query.isActive = isActive === 'true';
-      }
-      
-      const subsections = await subSectionService.getAllSubSections(query);
-      
-      return res.status(200).json({
-        success: true,
-        count: subsections.length,
-        data: subsections
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Get subsection by ID
-  async getSubSectionById(req: Request, res: Response) {
-    try {
-      const subsection = await subSectionService.getSubSectionById(req.params.id);
-      
-      return res.status(200).json({
-        success: true,
-        data: subsection
-      });
-    } catch (error: any) {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Update subsection
-  async updateSubSection(req: Request, res: Response) {
-    try {
-      const subsection = await subSectionService.updateSubSection(req.params.id, req.body);
-      
-      return res.status(200).json({
-        success: true,
-        data: subsection
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Delete subsection
-  async deleteSubSection(req: Request, res: Response) {
-    try {
-      const result = await subSectionService.deleteSubSection(req.params.id);
-      
-      return res.status(200).json({
-        success: true,
-        data: result
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Get subsection with content by ID and language
-  async getSubSectionWithContent(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const { languageId } = req.query;
-      
-      if (!languageId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Language ID is required'
-        });
-      }
-      
-      const subsection = await subSectionService.getSubSectionWithContent(id, languageId as string);
-      
-      return res.status(200).json({
-        success: true,
-        data: subsection
-      });
-    } catch (error: any) {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
+    });
+    
+    const result = await SubSectionService.updateSubsectionsOrder(subsections);
+    
+    sendSuccess(res, result, result.message);
+  });
 }
+
+export default new SubSectionController();

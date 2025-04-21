@@ -18,6 +18,8 @@ import subsectionRoutes from './routes/subSection.routes';
 import { requestIdMiddleware } from './middleware/requestId.middlerware';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.middlerware';
 import languagesRoutes from './routes/language.routes';
+import contentElementRoutes from './routes/contentElement.routes';
+import contentTranslationRoutes from './routes/contentTranslation.routes';
 
 const app: Express = express();
 
@@ -66,6 +68,10 @@ app.use(`/api/${apiVersion}/users`, userRoutes);
 app.use(`/api/${apiVersion}/sections`, sectionRoutes);
 app.use(`/api/${apiVersion}/subsections`, subsectionRoutes);
 app.use(`/api/${apiVersion}/languages`, languagesRoutes);
+app.use(`/api/${apiVersion}/content-elements`, contentElementRoutes);
+app.use(`/api/${apiVersion}/translations`, contentTranslationRoutes);
+
+
 
 // Health check route
 app.get('/health', (req, res) => {

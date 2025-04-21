@@ -19,14 +19,14 @@ export class SectionController {
    * Create a new section
    */
   createSection = asyncHandler(async (req: Request, res: Response) => {
-    const { name, description, image, isActive, order } = req.body;
+    const { section_name, description, image, isActive, order } = req.body;
     
-    if (!name) {
+    if (!section_name) {
       throw AppError.badRequest('Section name is required');
     }
     
     const section = await this.sectionService.createSection({
-      name,
+      section_name,
       description,
       image,
       isActive,

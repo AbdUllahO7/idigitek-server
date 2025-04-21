@@ -1,145 +1,104 @@
-// controllers/ContentElementController.ts
 import { Request, Response } from 'express';
-import { ContentElementService } from '../services/ContentElement.service';
+import { sendSuccess } from '../utils/responseHandler';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
+import mongoose from 'mongoose';
+import ContentElementService from '../services/ContentElement.service';
 
-const contentElementService = new ContentElementService();
+class ContentElementController {
+  /**
+   * Create a new content element
+   * @route POST /api/content-elements
+   */
+  createContentElement = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const contentElement = await ContentElementService.createContentElement(req.body);
+    sendSuccess(res, contentElement, 'Content element created successfully', 201);
+  });
 
-export class ContentElementController {
-  // Create a new content element
-  async createContentElement(req: Request, res: Response) {
-    try {
-      const { key, type, parentType, parentId, order, isActive } = req.body;
-      
-      if (!key || !type || !parentType || !parentId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Key, type, parentType, and parentId are required'
-        });
+  /**
+   * Get content element by ID
+   * @route GET /api/content-elements/:id
+   */
+  getContentElementById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const populateTranslations = req.query.translations === 'true';
+    const contentElement = await ContentElementService.getContentElementById(
+      req.params.id, 
+      populateTranslations
+    );
+    
+    sendSuccess(res, contentElement, 'Content element retrieved successfully');
+  });
+
+  /**
+   * Get all content elements for a subsection
+   * @route GET /api/content-elements/subsection/:subsectionId
+   */
+  getContentElementsBySubsection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const activeOnly = req.query.activeOnly !== 'false';
+    const populateTranslations = req.query.translations === 'true';
+    
+    const contentElements = await ContentElementService.getContentElementsBySubsection(
+      req.params.subsectionId,
+      activeOnly,
+      populateTranslations
+    );
+    
+    sendSuccess(res, contentElements, 'Content elements retrieved successfully');
+  });
+
+  /**
+   * Update content element by ID
+   * @route PUT /api/content-elements/:id
+   */
+  updateContentElement = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const contentElement = await ContentElementService.updateContentElement(
+      req.params.id,
+      req.body
+    );
+    
+    sendSuccess(res, contentElement, 'Content element updated successfully');
+  });
+
+  /**
+   * Delete content element by ID
+   * @route DELETE /api/content-elements/:id
+   */
+  deleteContentElement = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const hardDelete = req.query.hardDelete === 'true';
+    
+    const result = await ContentElementService.deleteContentElement(
+      req.params.id,
+      hardDelete
+    );
+    
+    sendSuccess(res, result, result.message);
+  });
+
+  /**
+   * Update order of multiple content elements
+   * @route PUT /api/content-elements/order
+   */
+  updateElementsOrder = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { elements } = req.body;
+    
+    if (!elements || !Array.isArray(elements) || elements.length === 0) {
+      throw AppError.badRequest('Valid elements array is required');
+    }
+    
+    // Validate each element in the array
+    elements.forEach(element => {
+      if (!element.id || !mongoose.Types.ObjectId.isValid(element.id)) {
+        throw AppError.validation(`Invalid element ID: ${element.id}`);
       }
       
-      const element = await contentElementService.createContentElement({
-        key,
-        type,
-        parentType,
-        parentId,
-        order,
-        isActive
-      });
-      
-      return res.status(201).json({
-        success: true,
-        data: element
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Get all content elements
-  async getAllContentElements(req: Request, res: Response) {
-    try {
-      const { parentType, parentId, type, isActive } = req.query;
-      const query: any = {};
-      
-      if (parentType) {
-        query.parentType = parentType;
+      if (typeof element.order !== 'number') {
+        throw AppError.validation(`Order must be a number for element ID: ${element.id}`);
       }
-      
-      if (parentId) {
-        query.parentId = parentId;
-      }
-      
-      if (type) {
-        query.type = type;
-      }
-      
-      if (isActive !== undefined) {
-        query.isActive = isActive === 'true';
-      }
-      
-      const elements = await contentElementService.getAllContentElements(query);
-      
-      return res.status(200).json({
-        success: true,
-        count: elements.length,
-        data: elements
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Get content element by ID
-  async getContentElementById(req: Request, res: Response) {
-    try {
-      const element = await contentElementService.getContentElementById(req.params.id);
-      
-      return res.status(200).json({
-        success: true,
-        data: element
-      });
-    } catch (error: any) {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Update content element
-  async updateContentElement(req: Request, res: Response) {
-    try {
-      const element = await contentElementService.updateContentElement(req.params.id, req.body);
-      
-      return res.status(200).json({
-        success: true,
-        data: element
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Delete content element
-  async deleteContentElement(req: Request, res: Response) {
-    try {
-      const result = await contentElementService.deleteContentElement(req.params.id);
-      
-      return res.status(200).json({
-        success: true,
-        data: result
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  // Get content element with translations
-  async getContentElementWithTranslations(req: Request, res: Response) {
-    try {
-      const element = await contentElementService.getContentElementWithTranslations(req.params.id);
-      
-      return res.status(200).json({
-        success: true,
-        data: element
-      });
-    } catch (error: any) {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
+    });
+    
+    const result = await ContentElementService.updateElementsOrder(elements);
+    
+    sendSuccess(res, result, result.message);
+  });
 }
+
+export default new ContentElementController();

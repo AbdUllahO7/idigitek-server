@@ -1,21 +1,9 @@
-
-// ContentElement.ts
 import mongoose, { Schema } from 'mongoose';
-
-interface IContentElement {
-  key: string;
-  type: 'text' | 'image' | 'icon' | 'gallery' | 'video' | 'link' | 'custom';
-  parentType: 'section' | 'subsection';
-  parentId: mongoose.Types.ObjectId;
-  order: number;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { IContentElement } from '../types/ContentElement.type';
 
 const contentElementSchema = new Schema<IContentElement>(
   {
-    key: {
+    name: {
       type: String,
       required: true,
       trim: true,
@@ -23,26 +11,30 @@ const contentElementSchema = new Schema<IContentElement>(
     },
     type: {
       type: String,
-      enum: ['text', 'image', 'icon', 'gallery', 'video', 'link', 'custom'],
+      enum: ['text', 'heading', 'paragraph', 'list', 'image', 'video', 'link', 'custom'],
       required: true,
+      index: true,
     },
-    parentType: {
+    defaultContent: {
       type: String,
-      enum: ['section', 'subsection'],
-      required: true,
+      trim: true,
     },
-    parentId: {
-      type: Schema.Types.ObjectId,
-      required: true,
-      refPath: 'parentType',
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    metadata: {
+      type: Schema.Types.Mixed,
     },
     order: {
       type: Number,
       default: 0,
     },
-    isActive: {
-      type: Boolean,
-      default: true,
+    parent: {
+      type: Schema.Types.ObjectId,
+      ref: 'SubSection',
+      required: true,
+      index: true,
     }
   },
   {
@@ -51,4 +43,5 @@ const contentElementSchema = new Schema<IContentElement>(
 );
 
 const ContentElementModel = mongoose.model<IContentElement>('ContentElement', contentElementSchema);
+
 export default ContentElementModel;

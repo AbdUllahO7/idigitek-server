@@ -1,113 +1,95 @@
-// controllers/LanguageController.ts
 import { Request, Response } from 'express';
 import { LanguageService } from '../services/language.service';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
+import { sendSuccess } from '../utils/responseHandler';
 
 const languageService = new LanguageService();
 
 export class LanguageController {
   // Create a new language
-  async createLanguage(req: Request, res: Response) {
-    try {
-      const { name, code, isActive } = req.body;
-      
-      if (!name || !code) {
-        return res.status(400).json({
-          success: false,
-          message: 'Name and code are required'
-        });
-      }
-      
-      const language = await languageService.createLanguage({
-        name,
-        code,
-        isActive
-      });
-      
-      return res.status(201).json({
-        success: true,
-        data: language
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
+  createLanguage = asyncHandler(async (req: Request, res: Response) => {
+    const { language, languageID, isActive } = req.body;
+    
+    if (!language || !languageID) {
+      throw AppError.badRequest('Language name and language ID are required');
     }
-  }
+    
+    const newLanguage = await languageService.createLanguage({
+      language,
+      languageID,
+      isActive
+    });
+    
+    sendSuccess(res, newLanguage, 'Language created successfully', 201);
+  });
 
   // Get all languages
-  async getAllLanguages(req: Request, res: Response) {
-    try {
-      const { isActive } = req.query;
-      const query: any = {};
-      
-      if (isActive !== undefined) {
-        query.isActive = isActive === 'true';
-      }
-      
-      const languages = await languageService.getAllLanguages(query);
-      
-      return res.status(200).json({
-        success: true,
-        count: languages.length,
-        data: languages
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
+  getAllLanguages = asyncHandler(async (req: Request, res: Response) => {
+    const { isActive } = req.query;
+    const query: any = {};
+    
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true';
     }
-  }
+    
+    const languages = await languageService.getAllLanguages(query);
+    
+    sendSuccess(res, languages, 'Languages retrieved successfully');
+  });
 
   // Get language by ID
-  async getLanguageById(req: Request, res: Response) {
-    try {
-      const language = await languageService.getLanguageById(req.params.id);
-      
-      return res.status(200).json({
-        success: true,
-        data: language
-      });
-    } catch (error: any) {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
+  getLanguageById = asyncHandler(async (req: Request, res: Response) => {
+    const language = await languageService.getLanguageById(req.params.id);
+    
+    sendSuccess(res, language, 'Language retrieved successfully');
+  });
 
   // Update language
-  async updateLanguage(req: Request, res: Response) {
-    try {
-      const language = await languageService.updateLanguage(req.params.id, req.body);
-      
-      return res.status(200).json({
-        success: true,
-        data: language
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
+  updateLanguage = asyncHandler(async (req: Request, res: Response) => {
+    const language = await languageService.updateLanguage(req.params.id, req.body);
+    
+    sendSuccess(res, language, 'Language updated successfully');
+  });
 
   // Delete language
-  async deleteLanguage(req: Request, res: Response) {
-    try {
-      const result = await languageService.deleteLanguage(req.params.id);
-      
-      return res.status(200).json({
-        success: true,
-        data: result
-      });
-    } catch (error: any) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
+  deleteLanguage = asyncHandler(async (req: Request, res: Response) => {
+    const result = await languageService.deleteLanguage(req.params.id);
+    
+    sendSuccess(res, result, 'Language deleted successfully');
+  });
+
+  // Update only the isActive status of a language
+  updateLanguageStatus = asyncHandler(async (req: Request, res: Response) => {
+    const { isActive } = req.body;
+    
+    if (isActive === undefined || typeof isActive !== 'boolean') {
+      throw AppError.badRequest('isActive must be a boolean value');
     }
-  }
+    
+    const language = await languageService.updateLanguageActiveStatus(req.params.id, isActive);
+    
+    sendSuccess(res, language, `Language status updated to ${isActive ? 'active' : 'inactive'} successfully`);
+  });
+
+  // Toggle language active status
+  toggleLanguageStatus = asyncHandler(async (req: Request, res: Response) => {
+    const language = await languageService.toggleLanguageStatus(req.params.id);
+    
+    sendSuccess(res, language, `Language status toggled to ${language.isActive ? 'active' : 'inactive'} successfully`);
+  });
+
+  // Batch update language statuses
+  batchUpdateLanguageStatuses = asyncHandler(async (req: Request, res: Response) => {
+    const { updates } = req.body;
+    
+    if (!updates || !Array.isArray(updates) || updates.length === 0) {
+      throw AppError.badRequest('Valid updates array is required');
+    }
+    
+    const result = await languageService.batchUpdateLanguageStatuses(updates);
+    
+    sendSuccess(res, result, result.message);
+  });
 }
+
+export default new LanguageController();

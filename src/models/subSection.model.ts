@@ -1,14 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-
-interface ISubSection {
-  name: string;
-  description: string;
-  sectionId: mongoose.Types.ObjectId;
-  isActive: boolean;
-  order: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { ISubSection } from '../types/sub.section.types';
 
 const subSectionSchema = new Schema<ISubSection>(
   {
@@ -22,10 +13,13 @@ const subSectionSchema = new Schema<ISubSection>(
       type: String,
       trim: true,
     },
-    sectionId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Section',
+    slug: {
+      type: String,
       required: true,
+      trim: true,
+      lowercase: true,
+      index: true,
+      unique: true,
     },
     isActive: {
       type: Boolean,
@@ -34,6 +28,20 @@ const subSectionSchema = new Schema<ISubSection>(
     order: {
       type: Number,
       default: 0,
+    },
+    // Parent sections that contain this subsection
+    parentSections: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Sections'
+    }],
+    // Languages associated with this subsection
+    languages: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Languages'
+    }],
+    // Metadata for additional configuration
+    metadata: {
+      type: Schema.Types.Mixed,
     }
   },
   {
@@ -42,4 +50,5 @@ const subSectionSchema = new Schema<ISubSection>(
 );
 
 const SubSectionModel = mongoose.model<ISubSection>('SubSection', subSectionSchema);
+
 export default SubSectionModel;
