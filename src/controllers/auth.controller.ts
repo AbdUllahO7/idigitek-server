@@ -46,7 +46,7 @@ class AuthController {
             lastName: "-Admin",
             email: "admin@idigitek.com",
             password: "idigitek176984", // This should be changed after first login
-            role: "superAdmin",
+            role: "owner",
             status : "active"
           };
           

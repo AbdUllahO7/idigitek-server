@@ -1,19 +1,17 @@
+// routes/sectionRoutes.ts
 import express from 'express';
-import SectionController from '../controllers/section.controller';
+import { SectionController } from '../controllers/section.controller';
 
 const router = express.Router();
+const sectionController = new SectionController();
 
-// Base routes for sections
-router.post('/', SectionController.createSection);
-router.get('/', SectionController.getAllSections);
-router.get('/:id', SectionController.getSectionById);
-router.put('/:id', SectionController.updateSection);
-router.delete('/:id', SectionController.deleteSection);
-router.patch('/:id/status', SectionController.updateSectionStatus);
-
-// Element relationship routes
-router.get('/:id/elements', SectionController.getSectionElements);
-router.post('/:id/elements', SectionController.addElementToSection);
-router.delete('/:id/elements/:elementId', SectionController.removeElementFromSection);
+// Routes
+router.post('/', sectionController.createSection);
+router.get('/', sectionController.getAllSections);
+router.get('/:id', sectionController.getSectionById);
+router.get('/:id/content', sectionController.getSectionWithContent);
+router.patch('/:id', sectionController.updateSection);
+router.patch('/:id/status', sectionController.updateSectionStatus); // New route for updating status
+router.delete('/:id', sectionController.deleteSection);
 
 export default router;

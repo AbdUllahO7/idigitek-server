@@ -13,6 +13,14 @@ const subSectionSchema = new Schema<ISubSection>(
       type: String,
       trim: true,
     },
+    slug: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      index: true,
+      unique: true,
+    },
     isActive: {
       type: Boolean,
       default: true,
@@ -24,13 +32,17 @@ const subSectionSchema = new Schema<ISubSection>(
     // Parent sections that contain this subsection
     parentSections: [{
       type: Schema.Types.ObjectId,
-      ref: 'SectionBasicInfo'
+      ref: 'Sections'
     }],
     // Languages associated with this subsection
     languages: [{
       type: Schema.Types.ObjectId,
       ref: 'Languages'
-    }]
+    }],
+    // Metadata for additional configuration
+    metadata: {
+      type: Schema.Types.Mixed,
+    }
   },
   {
     timestamps: true,

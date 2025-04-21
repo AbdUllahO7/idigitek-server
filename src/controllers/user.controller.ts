@@ -24,7 +24,7 @@ class UserController {
   });
 
  /**
- * Create a new user (superAdmin only)
+ * Create a new user (superAdmin and Owner only)
  */
   createUser = asyncHandler(async (req: Request, res: Response) => {
     const userData = {
@@ -37,9 +37,9 @@ class UserController {
     };
     
     // Check if trying to create a superAdmin
-    if (userData.role === UserRole.SUPER_ADMIN) {
+    if (userData.role === UserRole.OWNER) {
       // Check if a superAdmin already exists
-      const existingSuperAdmin = await userService.checkSuperAdminExists();
+      const existingSuperAdmin = await userService.checkSuperOwnerExists();
       if (existingSuperAdmin) {
         throw AppError.validation('A SuperAdmin user already exists in the system');
       }
@@ -52,10 +52,19 @@ class UserController {
 
 
   /**
-   * Update any user (admin only)
+   * Update any user (OWNER AND SUPER ADMIN )
    */
   updateUser = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.params.id;
+    
+    // First check if the target user is an owner
+    const targetUser = await userService.getUserById(userId);
+    if (targetUser.role === UserRole.OWNER) {
+      // If target is an owner, check if current user is also an owner
+      if (req.user?.role !== UserRole.OWNER) {
+        throw AppError.validation('Only users with Owner role can modify Owner accounts');
+      }
+    }
     
     // Get all update fields from request body
     const updateData = {
@@ -74,15 +83,14 @@ class UserController {
       }
     });
     
-    // Check if trying to update to superAdmin
-    if (updateData.role === UserRole.SUPER_ADMIN) {
-      // Check if a superAdmin already exists
-      const existingSuperAdmin = await userService.checkSuperAdminExists();
-      if (existingSuperAdmin) {
-        // Check if this user is already the superAdmin (in which case, we'll allow the update)
-        const currentUser = await userService.getUserById(userId);
-        if (currentUser.role !== UserRole.SUPER_ADMIN) {
-          throw AppError.validation('A SuperAdmin user already exists in the system');
+    // Check if trying to update to owner
+    if (updateData.role === UserRole.OWNER) {
+      // Check if a owner already exists
+      const existingSuperOwner = await userService.checkSuperOwnerExists();
+      if (existingSuperOwner) {
+        // Check if this user is already the OWNER (in which case, we'll allow the update)
+        if (targetUser.role !== UserRole.OWNER) {
+          throw AppError.validation('A OWNER user already exists in the system');
         }
       }
     }
@@ -154,40 +162,56 @@ class UserController {
     );
   });
 
- 
-/**
+  /**
  * Update user role (admin only)
  */
-updateUserRole = asyncHandler(async (req: Request, res: Response) => {
-  const newRole = req.body.role as UserRole;
-  
-  // Check if trying to update to superAdmin
-  if (newRole === UserRole.SUPER_ADMIN) {
-    // Check if a superAdmin already exists
-    const existingSuperAdmin = await userService.checkSuperAdminExists();
-    if (existingSuperAdmin) {
-      // Check if this user is already the superAdmin (in which case, we'll allow the update)
-      const currentUser = await userService.getUserById(req.params.id);
-      if (currentUser.role !== UserRole.SUPER_ADMIN) {
-        throw AppError.validation('A SuperAdmin user already exists in the system');
+  updateUserRole = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.params.id;
+    const newRole = req.body.role as UserRole;
+    
+    // First check if the target user is an owner
+    const targetUser = await userService.getUserById(userId);
+    if (targetUser.role === UserRole.OWNER) {
+      // If target is an owner, check if current user is also an owner
+      if (req.user?.role !== UserRole.OWNER) {
+        throw AppError.validation('Only users with Owner role can modify Owner accounts');
       }
     }
-  }
-  
-  const updatedUser = await userService.updateUserRole(
-    req.params.id,
-    newRole
-  );
-  
-  return sendSuccess(res, updatedUser, 'User role updated successfully');
-});
+    
+    // Check if trying to update to superAdmin or owner
+    if (newRole === UserRole.SUPER_ADMIN || newRole === UserRole.OWNER) {
+      // Check if a superAdmin or owner already exists
+      const existingSuperAdmin = await userService.checkSuperOwnerExists();
+      if (existingSuperAdmin) {
+        // Check if this user is already the superAdmin or owner (in which case, we'll allow the update)
+        if (targetUser.role !== UserRole.SUPER_ADMIN && targetUser.role !== UserRole.OWNER) {
+          throw AppError.validation('A SuperAdmin or Owner user already exists in the system');
+        }
+      }
+    }
+    
+    const updatedUser = await userService.updateUserRole(userId, newRole);
+    return sendSuccess(res, updatedUser, 'User role updated successfully');
+  });
+
 
   /**
    * Update user status (admin only)
    */
   updateUserStatus = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.params.id;
+    
+    // First check if the target user is an owner
+    const targetUser = await userService.getUserById(userId);
+    if (targetUser.role === UserRole.OWNER) {
+      // If target is an owner, check if current user is also an owner
+      if (req.user?.role !== UserRole.OWNER) {
+        throw AppError.validation('Only users with Owner role can modify Owner accounts');
+      }
+    }
+    
     const updatedUser = await userService.updateUserStatus(
-      req.params.id,
+      userId,
       req.body.status as UserStatus
     );
     
@@ -198,8 +222,16 @@ updateUserRole = asyncHandler(async (req: Request, res: Response) => {
    * Delete user (admin only)
    */
   deleteUser = asyncHandler(async (req: Request, res: Response) => {
-    // First check if this is the user trying to delete themselves
-    if (req.user?.id === req.params.id) {
+    const userId = req.params.id;
+    
+    // First check if the target user is an owner
+    const targetUser = await userService.getUserById(userId);
+    if (targetUser.role === UserRole.OWNER) {
+      throw AppError.validation('Owner accounts cannot be deleted');
+    }
+    
+    // Check if this is the user trying to delete themselves
+    if (req.user?.id === userId) {
       throw AppError.badRequest('You cannot delete your own account');
     }
     
@@ -209,9 +241,10 @@ updateUserRole = asyncHandler(async (req: Request, res: Response) => {
       throw AppError.badRequest('Cannot delete the last user in the system');
     }
     
-    const result = await userService.deleteUser(req.params.id);
+    const result = await userService.deleteUser(userId);
     return sendSuccess(res, result, 'User deleted successfully');
   });
+  
 }
 
 export default new UserController();
