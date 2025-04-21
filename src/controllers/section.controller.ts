@@ -48,11 +48,11 @@ export class SectionController {
     }
     
     const sections = await this.sectionService.getAllSections(query);
-    
-    return sendSuccess(res, {
+    return res.status(200).json({
+      success: true,
       count: sections.length,
       data: sections
-    }, 'Sections retrieved successfully');
+    });
   });
 
   /**
@@ -94,6 +94,34 @@ export class SectionController {
   });
 
   /**
+   * Update section active status
+   */
+  updateSectionStatus = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    
+    if (!id) {
+      throw AppError.badRequest('Section ID is required');
+    }
+    
+    if (isActive === undefined) {
+      throw AppError.badRequest('isActive status is required');
+    }
+    
+    if (typeof isActive !== 'boolean') {
+      throw AppError.badRequest('isActive must be a boolean value');
+    }
+    
+    const section = await this.sectionService.updateSectionStatus(id, isActive);
+    
+    if (!section) {
+      throw AppError.notFound('Section not found');
+    }
+    
+    return sendSuccess(res, section, `Section status ${isActive ? 'activated' : 'deactivated'} successfully`);
+  });
+
+  /**
    * Delete section
    */
   deleteSection = asyncHandler(async (req: Request, res: Response) => {
@@ -132,4 +160,3 @@ export class SectionController {
     return sendSuccess(res, section, 'Section with content retrieved successfully');
   });
 }
-

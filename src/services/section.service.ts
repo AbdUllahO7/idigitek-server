@@ -1,24 +1,41 @@
-
 import mongoose from 'mongoose';
 import ContentElementModel from '../models/ContentElement.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
-import SectionModel from '../models/sectionBasicInfo.model';
+import SectionModel from '../models/sections.model';
 import SubSectionModel from '../models/subSection.model';
 
 export class SectionService {
   // Create a new section
   async createSection(sectionData: {
-    name: string;
+    section_name: string; // Changed from 'name' to 'section_name'
     description?: string;
     image?: string;
     isActive?: boolean;
     order?: number;
   }) {
     try {
+      // Ensure section_name is not null, undefined, or empty string
+      if (!sectionData.section_name || sectionData.section_name.trim() === '') {
+        throw new Error('Section name is required and cannot be empty');
+      }
+      
+      // Check if section with the same name already exists
+      const existingSection = await SectionModel.findOne({ 
+        section_name: sectionData.section_name 
+      });
+      
+      if (existingSection) {
+        throw new Error(`Section with name "${sectionData.section_name}" already exists`);
+      }
+      
       const section = new SectionModel(sectionData);
       await section.save();
       return section;
-    } catch (error) {
+    } catch (error: any) {
+      // If this is a duplicate key error, provide a clearer message
+      if (error.name === 'MongoServerError' && error.code === 11000) {
+        throw new Error(`Section with name "${sectionData.section_name}" already exists`);
+      }
       throw error;
     }
   }
@@ -49,6 +66,23 @@ export class SectionService {
   // Update section
   async updateSection(id: string, updateData: any) {
     try {
+      // If section_name is being updated, ensure it's not null, undefined, or empty
+      if (updateData.section_name !== undefined) {
+        if (!updateData.section_name || updateData.section_name.trim() === '') {
+          throw new Error('Section name cannot be empty');
+        }
+        
+        // Check if another section with the same name already exists (except this one)
+        const existingSection = await SectionModel.findOne({ 
+          section_name: updateData.section_name,
+          _id: { $ne: id } // Exclude current section from check
+        });
+        
+        if (existingSection) {
+          throw new Error(`Another section with name "${updateData.section_name}" already exists`);
+        }
+      }
+      
       const section = await SectionModel.findByIdAndUpdate(
         id,
         updateData,
@@ -57,6 +91,29 @@ export class SectionService {
       if (!section) {
         throw new Error('Section not found');
       }
+      return section;
+    } catch (error: any) {
+      // If this is a duplicate key error, provide a clearer message
+      if (error.name === 'MongoServerError' && error.code === 11000) {
+        throw new Error(`Another section with the same name already exists`);
+      }
+      throw error;
+    }
+  }
+
+  // Update section status
+  async updateSectionStatus(id: string, isActive: boolean) {
+    try {
+      const section = await SectionModel.findByIdAndUpdate(
+        id,
+        { isActive },
+        { new: true, runValidators: true }
+      );
+      
+      if (!section) {
+        throw new Error('Section not found');
+      }
+      
       return section;
     } catch (error) {
       throw error;

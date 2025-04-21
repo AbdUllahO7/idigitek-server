@@ -64,7 +64,6 @@ class AuthService {
   login = async (loginData: ILoginUserRequest) => {
     // Find user by email
     const user = await UserModel.findOne({ email: loginData.email });
-    console.log(user)
     if (!user) {
       throw new AppError('Invalid email or password', 401);
     }
