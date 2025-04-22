@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
-import SubSectionService from '../services/subSection.service';
 import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 import mongoose from 'mongoose';
+import subSectionService from '../services/subSection.service';
 
 class SubSectionController {
   /**
@@ -10,7 +10,7 @@ class SubSectionController {
    * @route POST /api/subsections
    */
   createSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const subsection = await SubSectionService.createSubSection(req.body);
+    const subsection = await subSectionService.createSubSection(req.body);
     sendSuccess(res, subsection, 'Subsection created successfully', 201);
   });
   
@@ -24,7 +24,7 @@ class SubSectionController {
     const skip = parseInt(req.query.skip as string) || 0;
     const includeContentCount = req.query.includeContentCount === 'true';
     
-    const subsections = await SubSectionService.getAllSubSections(
+    const subsections = await subSectionService.getAllSubSections(
       activeOnly, 
       limit, 
       skip,
@@ -42,7 +42,7 @@ class SubSectionController {
     const populateParents = req.query.populate !== 'false';
     const includeContentElements = req.query.includeContent === 'true';
     
-    const subsection = await SubSectionService.getSubSectionById(
+    const subsection = await subSectionService.getSubSectionById(
       req.params.id, 
       populateParents,
       includeContentElements
@@ -59,7 +59,7 @@ class SubSectionController {
     const populateParents = req.query.populate !== 'false';
     const includeContentElements = req.query.includeContent === 'true';
     
-    const subsection = await SubSectionService.getSubSectionBySlug(
+    const subsection = await subSectionService.getSubSectionBySlug(
       req.params.slug, 
       populateParents,
       includeContentElements
@@ -77,7 +77,7 @@ class SubSectionController {
       throw AppError.validation('Invalid subsection ID format');
     }
     
-    const subsection = await SubSectionService.updateSubSectionById(
+    const subsection = await subSectionService.updateSubSectionById(
       req.params.id, 
       req.body
     );
@@ -95,7 +95,7 @@ class SubSectionController {
     }
     
     const hardDelete = req.query.hardDelete === 'true';
-    const result = await SubSectionService.deleteSubSectionById(req.params.id, hardDelete);
+    const result = await subSectionService.deleteSubSectionById(req.params.id, hardDelete);
     
     sendSuccess(res, result, result.message);
   });
@@ -122,10 +122,40 @@ class SubSectionController {
       }
     });
     
-    const result = await SubSectionService.updateSubsectionsOrder(subsections);
+    const result = await subSectionService.updateSubsectionsOrder(subsections);
     
     sendSuccess(res, result, result.message);
   });
+
+    /**
+   * Get complete subsection by ID with all content elements and translations
+   * @route GET /api/subsections/:id/complete
+   */
+    getCompleteSubSectionById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      const populateParents = req.query.populate !== 'false';
+      
+      const subsection = await subSectionService.getCompleteSubSectionById(
+        req.params.id, 
+        populateParents
+      );
+      
+      sendSuccess(res, subsection, 'Complete subsection data retrieved successfully');
+    });
+    
+    /**
+     * Get complete subsection by slug with all content elements and translations
+     * @route GET /api/subsections/slug/:slug/complete
+     */
+    getCompleteSubSectionBySlug = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      const populateParents = req.query.populate !== 'false';
+      
+      const subsection = await subSectionService.getCompleteSubSectionBySlug(
+        req.params.slug, 
+        populateParents
+      );
+      
+      sendSuccess(res, subsection, 'Complete subsection data retrieved successfully');
+    });
 }
 
 export default new SubSectionController();

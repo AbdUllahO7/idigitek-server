@@ -4,6 +4,7 @@ import SubSectionModel from '../models/subSection.model';
 import { ISubSection, ICreateSubSection, IUpdateSubSection } from '../types/sub.section.types';
 import mongoose from 'mongoose';
 import SectionModel from '../models/sections.model';
+import ContentTranslationModel from '../models/ContentTranslation.model';
 
 class SubSectionService {
     /**
@@ -353,6 +354,111 @@ class SubSectionService {
             throw AppError.database('Failed to update subsections order', error);
         }
     }
+/**
+     * Get subsection by ID with all content elements and their translations
+     * @param id The subsection ID
+     * @param populateParents Whether to populate parent sections
+     * @returns Promise with the complete subsection data including elements and translations
+     */
+async getCompleteSubSectionById(
+    id: string, 
+    populateParents = true
+): Promise<any> {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw AppError.validation('Invalid subsection ID format');
+        }
+
+        // First get the subsection
+        const query = SubSectionModel.findById(id);
+        
+        if (populateParents) {
+            query.populate('parentSections').populate('languages');
+        }
+        
+        const subsection = await query.exec();
+        
+        if (!subsection) {
+            throw AppError.notFound(`Subsection with ID ${id} not found`);
+        }
+        
+        // Get all content elements for this subsection
+        const contentElements = await ContentElementModel.find({
+            parent: id,
+            isActive: true
+        }).sort({ order: 1 });
+        
+        // Get all element IDs
+        const elementIds = contentElements.map(element => element._id);
+        
+        // Get all translations for these elements in a single query
+        const translations = await ContentTranslationModel.find({
+            contentElement: { $in: elementIds },
+            isActive: true
+        }).populate('language');
+        
+        // Group translations by content element ID
+        const translationsByElement: Record<string, any[]> = {};
+        
+        translations.forEach(translation => {
+            const elementId = translation.contentElement.toString();
+            if (!translationsByElement[elementId]) {
+                translationsByElement[elementId] = [];
+            }
+            translationsByElement[elementId].push(translation);
+        });
+        
+        // Add translations to each content element
+        const elementsWithTranslations = contentElements.map(element => {
+            const elementId = element._id.toString();
+            const elementData = element.toObject();
+            elementData.translations = translationsByElement[elementId] || [];
+            return elementData;
+        });
+        
+        // Create result object
+        const result = subsection.toObject();
+        result.contentElements = elementsWithTranslations;
+        
+        return result;
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw AppError.database('Failed to retrieve complete subsection data', error);
+    }
+}
+
+/**
+ * Get subsection by slug with all content elements and their translations
+ * @param slug The subsection slug
+ * @param populateParents Whether to populate parent sections
+ * @returns Promise with the complete subsection data including elements and translations
+ */
+async getCompleteSubSectionBySlug(
+    slug: string,
+    populateParents = true
+): Promise<any> {
+    try {
+        // Find subsection by slug
+        const query = SubSectionModel.findOne({ slug });
+        
+        if (populateParents) {
+            query.populate('parentSections').populate('languages');
+        }
+        
+        const subsection = await query.exec();
+        
+        if (!subsection) {
+            throw AppError.notFound(`Subsection with slug ${slug} not found`);
+        }
+        
+        // Use the ID to get complete data
+        return this.getCompleteSubSectionById(subsection._id.toString(), false);
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw AppError.database('Failed to retrieve complete subsection data', error);
+    }
+}
+
 }
 
 export default new SubSectionService();

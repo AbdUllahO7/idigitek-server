@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { IContentTranslation } from '../types/contentTranslation.types';
+import { IContentTranslation } from '../types/ContentTranslation.type';
 
 const contentTranslationSchema = new Schema<IContentTranslation>(
   {

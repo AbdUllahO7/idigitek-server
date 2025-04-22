@@ -24,7 +24,7 @@ const sectionSchema = new Schema<ISection>(
       trim: true,
       default: ''
     },
-    image: {
+    image:{
       type: String,
       default: null
     },
@@ -42,5 +42,5 @@ const sectionSchema = new Schema<ISection>(
   }
 );
 
-const SectionModel = mongoose.model<ISection>('Section', sectionSchema);
+const SectionModel = mongoose.model<ISection>('Sections', sectionSchema);
 export default SectionModel;

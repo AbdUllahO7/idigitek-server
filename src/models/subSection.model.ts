@@ -3,7 +3,7 @@ import { ISubSection } from '../types/sub.section.types';
 
 const subSectionSchema = new Schema<ISubSection>(
   {
-    name: {
+    name:{
       type: String,
       required: true,
       trim: true,
@@ -49,6 +49,6 @@ const subSectionSchema = new Schema<ISubSection>(
   }
 );
 
-const SubSectionModel = mongoose.model<ISubSection>('SubSection', subSectionSchema);
+const SubSectionModel = mongoose.model<ISubSection>('SubSections', subSectionSchema);
 
 export default SubSectionModel;
