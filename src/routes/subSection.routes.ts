@@ -19,4 +19,9 @@ router.get('/:id', SubSectionController.getSubSectionById);
 router.put('/:id', authenticate, SubSectionController.updateSubSection);
 router.delete('/:id', authenticate, SubSectionController.deleteSubSection);
 
+
+// New routes for complete data
+router.get('/:id/complete', SubSectionController.getCompleteSubSectionById);
+router.get('/slug/:slug/complete', SubSectionController.getCompleteSubSectionBySlug);
+
 export default router;
