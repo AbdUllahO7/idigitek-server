@@ -3,6 +3,7 @@ import { sendSuccess } from '../utils/responseHandler';
 import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 import mongoose from 'mongoose';
 import subSectionService from '../services/subSection.service';
+import cloudinaryService from '../services/cloudinary.service';
 
 class SubSectionController {
   /**
@@ -156,6 +157,38 @@ class SubSectionController {
       
       sendSuccess(res, subsection, 'Complete subsection data retrieved successfully');
     });
+
+     /**
+   * Upload subsection image
+   * @route POST /api/subsections/:id/image
+   */
+  uploadSubSectionImage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw AppError.validation('Invalid subsection ID format');
+    }
+    
+    if (!req.file) {
+      throw AppError.badRequest('No image file provided');
+    }
+    
+    // Get the uploaded image URL from the request file (provided by Cloudinary)
+    const imageUrl = (req.file as any).path;
+    
+    // Update the subsection with the new image URL
+    const subsection = await subSectionService.updateSubSectionById(
+      req.params.id, 
+      { image: imageUrl }
+    );
+    
+    if (!subsection) {
+      // If update failed, delete the uploaded image to avoid orphaned files
+      const publicId = (req.file as any).filename;
+      await cloudinaryService.deleteImage(publicId);
+      throw AppError.notFound('Subsection not found');
+    }
+    
+    sendSuccess(res, subsection, 'Subsection image uploaded successfully');
+  });
 }
 
 export default new SubSectionController();

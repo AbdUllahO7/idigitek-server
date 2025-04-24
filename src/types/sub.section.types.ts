@@ -1,17 +1,18 @@
 import { Document, Schema } from 'mongoose';
 import { ISectionBasicInfo } from './sectionBasicInfo.types';
 
-export interface ISubSection extends Document {
+
+
+export interface ICreateSubSection {
   name: string;
   description?: string;
   slug: string;
-  isActive: boolean;
-  order: number;
-  parentSections: Schema.Types.ObjectId[] | ISectionBasicInfo[];
-  languages: Schema.Types.ObjectId[];
+  image?: string;
+  isActive?: boolean;
+  order?: number;
+  parentSections?: Schema.Types.ObjectId[] | string[];
+  languages?: Schema.Types.ObjectId[] | string[];
   metadata?: any;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface ICreateSubSection {

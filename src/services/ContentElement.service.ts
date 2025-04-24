@@ -163,7 +163,7 @@ class ContentElementService {
       if (!contentElement) {
         throw AppError.notFound(`Content element with ID ${id} not found`);
       }
-      
+      console.log("updateData", updateData);
       return contentElement;
     } catch (error) {
       if (error instanceof AppError) throw error;

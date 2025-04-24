@@ -40,6 +40,9 @@ export const env = {
     level: process.env.LOG_LEVEL || 'info',
     filePath: process.env.LOG_FILE_PATH || './logs',
   },
+
+  // Cloudinary settings
+  cloudinaryUrl: process.env.CLOUDINARY_URL,
 };
 
 // Validate essential environment variables

@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
 import { SectionService } from '../services/section.service';
 import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
-
+import cloudinaryService from '../services/cloudinary.service';
 /**
  * Section Controller
  * Handles all section-related requests
@@ -14,6 +14,37 @@ export class SectionController {
   constructor() {
     this.sectionService = new SectionService();
   }
+
+   /**
+   * Upload section image
+   * @route POST /api/sections/:id/image
+   */
+   uploadSectionImage = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    
+    if (!id) {
+      throw AppError.badRequest('Section ID is required');
+    }
+    
+    if (!req.file) {
+      throw AppError.badRequest('No image file provided');
+    }
+    
+    // Get the uploaded image URL from the request file (provided by Cloudinary)
+    const imageUrl = (req.file as any).path;
+    
+    // Update the section with the new image URL
+    const section = await this.sectionService.updateSection(id, { image: imageUrl });
+    
+    if (!section) {
+      // If update failed, delete the uploaded image to avoid orphaned files
+      const publicId = (req.file as any).filename;
+      await cloudinaryService.deleteImage(publicId);
+      throw AppError.notFound('Section not found');
+    }
+    
+    return sendSuccess(res, section, 'Section image uploaded successfully');
+  });
 
   /**
    * Create a new section
