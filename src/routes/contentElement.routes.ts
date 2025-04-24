@@ -1,6 +1,8 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth.middleware';
 import ContentElementController from '../controllers/ContentElement.controller';
+import cloudinaryService from '../services/cloudinary.service';
+import { handleMulterError } from '../middleware/multer.Error.middleware';
 
 const router = express.Router();
 
@@ -16,5 +18,13 @@ router.get('/subsection/:subsectionId', ContentElementController.getContentEleme
 router.get('/:id', ContentElementController.getContentElementById);
 router.put('/:id', authenticate, ContentElementController.updateContentElement);
 router.delete('/:id', authenticate, ContentElementController.deleteContentElement);
+
+router.post(
+  '/:id/image', 
+  authenticate, 
+  cloudinaryService.uploadSingleImage('image'),
+  handleMulterError,
+  ContentElementController.uploadElementImage
+);
 
 export default router;

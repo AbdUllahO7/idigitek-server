@@ -20,6 +20,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.middler
 import languagesRoutes from './routes/language.routes';
 import contentElementRoutes from './routes/contentElement.routes';
 import contentTranslationRoutes from './routes/contentTranslation.routes';
+import uploadRoutes from './routes/upload.routes';
 
 const app: Express = express();
 
@@ -70,6 +71,7 @@ app.use(`/api/${apiVersion}/subsections`, subsectionRoutes);
 app.use(`/api/${apiVersion}/languages`, languagesRoutes);
 app.use(`/api/${apiVersion}/content-elements`, contentElementRoutes);
 app.use(`/api/${apiVersion}/translations`, contentTranslationRoutes);
+app.use(`/api/${apiVersion}/uploads`, uploadRoutes);
 
 
 

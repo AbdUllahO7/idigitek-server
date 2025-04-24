@@ -228,6 +228,12 @@ class SubSectionService {
                     throw AppError.badRequest(`Subsection with slug '${updateData.slug}' already exists`);
                 }
             }
+
+            // Handle image update - capture old image URL if we're updating the image
+            let oldImageUrl;
+            if (updateData.image !== undefined && subsection.image) {
+                oldImageUrl = subsection.image;
+            }
             
             // Handle parent section updates if provided
             if (updateData.parentSections) {
@@ -268,6 +274,23 @@ class SubSectionService {
                 { new: true, runValidators: true }
             ).populate('parentSections').populate('languages');
             
+            // If we successfully updated with a new image and there was an old image, 
+            // try to delete the old one from Cloudinary
+            if (oldImageUrl && updateData.image && updateData.image !== oldImageUrl) {
+                try {
+                    const cloudinaryService = require('../services/cloudinary.service').default;
+                    const publicId = cloudinaryService.getPublicIdFromUrl(oldImageUrl);
+                    if (publicId) {
+                        // Delete in the background, don't wait for it
+                        cloudinaryService.deleteImage(publicId).catch(err => {
+                            console.error('Failed to delete old subsection image:', err);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error importing cloudinary service:', error);
+                }
+            }
+            
             return updatedSubSection;
         } catch (error) {
             if (error instanceof AppError) throw error;
@@ -296,6 +319,9 @@ class SubSectionService {
                 throw AppError.notFound(`Subsection with ID ${id} not found`);
             }
             
+            // Store image URL for later deletion if doing hard delete
+            const imageUrl = subsection.image;
+            
             if (hardDelete) {
                 // Check if there are content elements associated with this subsection
                 const contentElementsCount = await ContentElementModel.countDocuments({ parent: id });
@@ -311,6 +337,22 @@ class SubSectionService {
                     { subSections: id },
                     { $pull: { subSections: id } }
                 );
+                
+                // Delete the image from Cloudinary if it exists
+                if (imageUrl) {
+                    try {
+                        const cloudinaryService = require('../services/cloudinary.service').default;
+                        const publicId = cloudinaryService.getPublicIdFromUrl(imageUrl);
+                        if (publicId) {
+                            // Delete in the background, don't wait for it
+                            cloudinaryService.deleteImage(publicId).catch(err => {
+                                console.error('Failed to delete subsection image:', err);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error importing cloudinary service:', error);
+                    }
+                }
                 
                 return { success: true, message: 'Subsection deleted successfully' };
             } else {
