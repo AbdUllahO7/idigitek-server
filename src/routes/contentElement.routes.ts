@@ -1,12 +1,13 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth.middleware';
 import ContentElementController from '../controllers/ContentElement.controller';
-import cloudinaryService from '../services/cloudinary.service';
-import { handleMulterError } from '../middleware/multer.Error.middleware';
 
 const router = express.Router();
 
-// ContentElementController is already an instance, don't use 'new'
+
+
+// ContentElement routes
+
 // Base routes for content elements
 router.post('/', authenticate, ContentElementController.createContentElement);
 
@@ -14,17 +15,11 @@ router.post('/', authenticate, ContentElementController.createContentElement);
 router.put('/order', authenticate, ContentElementController.updateElementsOrder);
 router.get('/subsection/:subsectionId', ContentElementController.getContentElementsBySubsection);
 
+
+
 // Routes with the :id parameter should come last
 router.get('/:id', ContentElementController.getContentElementById);
 router.put('/:id', authenticate, ContentElementController.updateContentElement);
 router.delete('/:id', authenticate, ContentElementController.deleteContentElement);
-
-router.post(
-  '/:id/image', 
-  authenticate, 
-  cloudinaryService.uploadSingleImage('image'),
-  handleMulterError,
-  ContentElementController.uploadElementImage
-);
 
 export default router;

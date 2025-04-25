@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
 import { SectionService } from '../services/section.service';
 import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
-import cloudinaryService from '../services/cloudinary.service';
 /**
  * Section Controller
  * Handles all section-related requests
@@ -37,9 +36,6 @@ export class SectionController {
     const section = await this.sectionService.updateSection(id, { image: imageUrl });
     
     if (!section) {
-      // If update failed, delete the uploaded image to avoid orphaned files
-      const publicId = (req.file as any).filename;
-      await cloudinaryService.deleteImage(publicId);
       throw AppError.notFound('Section not found');
     }
     

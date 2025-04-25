@@ -20,7 +20,6 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.middler
 import languagesRoutes from './routes/language.routes';
 import contentElementRoutes from './routes/contentElement.routes';
 import contentTranslationRoutes from './routes/contentTranslation.routes';
-import uploadRoutes from './routes/upload.routes';
 
 const app: Express = express();
 
@@ -60,6 +59,14 @@ app.use(
 if (env.nodeEnv === 'development') {
   app.use(morgan('dev'));
 }
+
+// Before security middleware
+app.use(express.json({ limit: '50mb' })); // Increased from 10kb
+app.use(express.urlencoded({ 
+  extended: true,
+  limit: '50mb' // Increased from 10kb
+}));
+
 app.use(requestLogger);
 
 // API Routes
@@ -71,7 +78,6 @@ app.use(`/api/${apiVersion}/subsections`, subsectionRoutes);
 app.use(`/api/${apiVersion}/languages`, languagesRoutes);
 app.use(`/api/${apiVersion}/content-elements`, contentElementRoutes);
 app.use(`/api/${apiVersion}/translations`, contentTranslationRoutes);
-app.use(`/api/${apiVersion}/uploads`, uploadRoutes);
 
 
 

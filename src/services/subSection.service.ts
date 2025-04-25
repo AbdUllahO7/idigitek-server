@@ -1,7 +1,7 @@
 import ContentElementModel from '../models/ContentElement.model';
 import { AppError } from '../middleware/errorHandler.middlerware';
 import SubSectionModel from '../models/subSection.model';
-import { ISubSection, ICreateSubSection, IUpdateSubSection } from '../types/sub.section.types';
+import { ICreateSubSection, IUpdateSubSection } from '../types/sub.section.types';
 import mongoose from 'mongoose';
 import SectionModel from '../models/sections.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
@@ -12,7 +12,7 @@ class SubSectionService {
      * @param subsectionData The subsection data to create
      * @returns Promise with the created subsection
      */
-    async createSubSection(subsectionData: ICreateSubSection): Promise<ISubSection> {
+    async createSubSection(subsectionData: ICreateSubSection): Promise<ICreateSubSection> {
         try {
             // Check if subsection with this slug already exists
             const existingSubSection = await SubSectionModel.findOne({ slug: subsectionData.slug });
@@ -65,7 +65,7 @@ class SubSectionService {
         limit = 100, 
         skip = 0,
         includeContentCount = false
-    ): Promise<ISubSection[]> {
+    ): Promise<ICreateSubSection[]> {
         try {
             const query = activeOnly ? { isActive: true } : {};
             
@@ -120,7 +120,7 @@ class SubSectionService {
         id: string, 
         populateParents = true,
         includeContentElements = false
-    ): Promise<ISubSection> {
+    ): Promise<ICreateSubSection> {
         try {
             if (!mongoose.Types.ObjectId.isValid(id)) {
                 throw AppError.validation('Invalid subsection ID format');
@@ -167,7 +167,7 @@ class SubSectionService {
         slug: string,
         populateParents = true,
         includeContentElements = false
-    ): Promise<ISubSection> {
+    ): Promise<ICreateSubSection> {
         try {
             const query = SubSectionModel.findOne({ slug });
             
@@ -205,7 +205,7 @@ class SubSectionService {
      * @param updateData The data to update
      * @returns Promise with the updated subsection
      */
-    async updateSubSectionById(id: string, updateData: IUpdateSubSection): Promise<ISubSection> {
+    async updateSubSectionById(id: string, updateData: IUpdateSubSection): Promise<ICreateSubSection> {
         try {
             if (!mongoose.Types.ObjectId.isValid(id)) {
                 throw AppError.validation('Invalid subsection ID format');
@@ -229,11 +229,7 @@ class SubSectionService {
                 }
             }
 
-            // Handle image update - capture old image URL if we're updating the image
-            let oldImageUrl;
-            if (updateData.image !== undefined && subsection.image) {
-                oldImageUrl = subsection.image;
-            }
+        
             
             // Handle parent section updates if provided
             if (updateData.parentSections) {
@@ -274,23 +270,7 @@ class SubSectionService {
                 { new: true, runValidators: true }
             ).populate('parentSections').populate('languages');
             
-            // If we successfully updated with a new image and there was an old image, 
-            // try to delete the old one from Cloudinary
-            if (oldImageUrl && updateData.image && updateData.image !== oldImageUrl) {
-                try {
-                    const cloudinaryService = require('../services/cloudinary.service').default;
-                    const publicId = cloudinaryService.getPublicIdFromUrl(oldImageUrl);
-                    if (publicId) {
-                        // Delete in the background, don't wait for it
-                        cloudinaryService.deleteImage(publicId).catch(err => {
-                            console.error('Failed to delete old subsection image:', err);
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error importing cloudinary service:', error);
-                }
-            }
-            
+         
             return updatedSubSection;
         } catch (error) {
             if (error instanceof AppError) throw error;
@@ -318,10 +298,8 @@ class SubSectionService {
             if (!subsection) {
                 throw AppError.notFound(`Subsection with ID ${id} not found`);
             }
-            
-            // Store image URL for later deletion if doing hard delete
-            const imageUrl = subsection.image;
-            
+
+
             if (hardDelete) {
                 // Check if there are content elements associated with this subsection
                 const contentElementsCount = await ContentElementModel.countDocuments({ parent: id });
@@ -338,22 +316,7 @@ class SubSectionService {
                     { $pull: { subSections: id } }
                 );
                 
-                // Delete the image from Cloudinary if it exists
-                if (imageUrl) {
-                    try {
-                        const cloudinaryService = require('../services/cloudinary.service').default;
-                        const publicId = cloudinaryService.getPublicIdFromUrl(imageUrl);
-                        if (publicId) {
-                            // Delete in the background, don't wait for it
-                            cloudinaryService.deleteImage(publicId).catch(err => {
-                                console.error('Failed to delete subsection image:', err);
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error importing cloudinary service:', error);
-                    }
-                }
-                
+         
                 return { success: true, message: 'Subsection deleted successfully' };
             } else {
                 // Soft delete

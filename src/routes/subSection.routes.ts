@@ -1,8 +1,6 @@
 import express from 'express';
 import SubSectionController from '../controllers/subSection.controller';
 import { authenticate } from '../middleware/auth.middleware';
-import cloudinaryService from '../services/cloudinary.service';
-import { handleMulterError } from '../middleware/multer.Error.middleware';
 
 const router = express.Router();
 
@@ -25,11 +23,5 @@ router.delete('/:id', authenticate, SubSectionController.deleteSubSection);
 // New routes for complete data
 router.get('/:id/complete', SubSectionController.getCompleteSubSectionById);
 router.get('/slug/:slug/complete', SubSectionController.getCompleteSubSectionBySlug);
-router.post(
-    '/:id/image',
-    authenticate,
-    cloudinaryService.uploadSingleImage('image'),
-    handleMulterError,
-    SubSectionController.uploadSubSectionImage
-  );
+
 export default router;
