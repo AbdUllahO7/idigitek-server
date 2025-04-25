@@ -10,6 +10,7 @@ class SubSectionController {
    * @route POST /api/subsections
    */
   createSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    console.log('req.body', req.body); // Log the created content element
     const subsection = await subSectionService.createSubSection(req.body);
     sendSuccess(res, subsection, 'Subsection created successfully', 201);
   });

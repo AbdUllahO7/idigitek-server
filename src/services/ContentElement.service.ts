@@ -4,6 +4,7 @@ import SubSectionModel from '../models/subSection.model';
 import { IContentElement, ICreateContentElement, IUpdateContentElement } from '../types/ContentElement.type';
 import ContentElementModel from '../models/ContentElement.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
+import cloudinaryService from './cloudinary.service';
 
 class ContentElementService {
   /**
@@ -25,6 +26,49 @@ class ContentElementService {
       } catch (error) {
         if (error instanceof AppError) throw error;
         throw AppError.database('Failed to create content element', error);
+      }
+    }
+
+    /**
+ * Upload an image for a content element
+ * @param id Content element ID
+ * @param file The image file to upload
+ * @returns Promise with the updated content element
+ */
+    async uploadElementImage(id: string, file: Express.Multer.File): Promise<IContentElement> {
+      try {
+        // Validate ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+          throw AppError.validation('Invalid content element ID format');
+        }
+
+        // Find the content element
+        const contentElement = await ContentElementModel.findById(id);
+        if (!contentElement) {
+          throw AppError.notFound(`Content element with ID ${id} not found`);
+        }
+
+        // Check if element type is image
+        if (contentElement.type !== 'image') {
+          throw AppError.badRequest('Content element type must be "image" to upload an image');
+        }
+
+        // Upload to Cloudinary
+        const result = await cloudinaryService.uploadImage(file.path);
+        
+        // Update content element with image URL
+        contentElement.imageUrl = result.secure_url;
+        // Optional: store additional cloudinary data in metadata
+        if (!contentElement.metadata) contentElement.metadata = {};
+        contentElement.metadata.cloudinaryId = result.public_id;
+        contentElement.metadata.width = result.width;
+        contentElement.metadata.height = result.height;
+        
+        // Save and return updated content element
+        return await contentElement.save();
+      } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw AppError.database('Failed to upload image for content element', error);
       }
     }
 
@@ -182,12 +226,25 @@ class ContentElementService {
         if (!mongoose.Types.ObjectId.isValid(id)) {
           throw AppError.validation('Invalid content element ID format');
         }
-
+    
         const contentElement = await ContentElementModel.findById(id);
         if (!contentElement) {
           throw AppError.notFound(`Content element with ID ${id} not found`);
         }
-
+    
+        // Check if this is an image type with Cloudinary image
+        if (contentElement.type === 'image' && 
+            contentElement.metadata?.cloudinaryId &&
+            hardDelete) {
+          try {
+            // Delete the image from Cloudinary
+            await cloudinaryService.deleteImage(contentElement.metadata.cloudinaryId);
+          } catch (error) {
+            console.error('Failed to delete image from Cloudinary:', error);
+            // Continue with deletion even if Cloudinary delete fails
+          }
+        }
+    
         if (hardDelete) {
           // First delete all translations for this element
           await ContentTranslationModel.deleteMany({ contentElement: id });
