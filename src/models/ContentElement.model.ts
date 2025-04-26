@@ -12,7 +12,7 @@ const contentElementSchema = new Schema<IContentElement>(
     },
     type: {
       type: String,
-      enum: ['text', 'heading', 'paragraph', 'list', 'image', 'video', 'link', 'custom', 'badge', 'textarea'],
+      enum: ['text', 'heading', 'array',  'paragraph', 'list', 'image', 'video', 'link', 'custom', 'badge', 'textarea'],
       required: true,
       index: true,
     },

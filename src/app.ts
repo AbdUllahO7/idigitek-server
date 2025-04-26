@@ -32,8 +32,11 @@ app.use(helmet());
 // Parse JSON request body
 app.use(express.json({ limit: '10kb' }));
 
-// Parse URL-encoded request body
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+// Increase the payload size limit (example: 5MB)
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
+
+
 
 // Sanitize request data (prevent NoSQL injection & XSS)
 app.use(xss());
