@@ -18,6 +18,7 @@ export enum ErrorType {
   DATABASE = 'DATABASE',
   API = 'API',
   BUSINESS = 'BUSINESS',
+  external = 'EXTERNAL',
 }
 
 /**
@@ -75,6 +76,8 @@ export class AppError extends Error {
   static notFound(message: string = 'Resource not found', details?: any): AppError {
     return new AppError(message, 404, true, ErrorType.NOT_FOUND, 'RESOURCE_NOT_FOUND', details);
   }
+
+
 
   /**
    * Create a bad request error

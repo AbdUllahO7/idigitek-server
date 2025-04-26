@@ -1,35 +1,38 @@
-import { Document, Schema } from 'mongoose';
+import mongoose from "mongoose";
 
-export type ContentElementType = 'text' | 'heading' | 'paragraph' | 'list' | 'image' | 'video' | 'link' | 'custom';
-
-export interface IContentElement extends Document {
+// Update in types/ContentElement.type.ts
+export interface IContentElement {
+  _id: mongoose.Types.ObjectId;
   name: string;
-  type: ContentElementType;
+  type: 'text' | 'heading' | 'paragraph' | 'list' | 'image' | 'video' | 'link' | 'custom' | 'badge' | 'textarea';
   defaultContent?: string;
+  imageUrl?: string; // Add this field
   isActive: boolean;
   metadata?: any;
   order: number;
-  parent: Schema.Types.ObjectId | string;
+  parent: mongoose.Types.ObjectId | string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface ICreateContentElement {
   name: string;
-  type: ContentElementType;
+  type: string;
   defaultContent?: string;
+  imageUrl?: string; // Add this field
   isActive?: boolean;
   metadata?: any;
   order?: number;
-  parent: Schema.Types.ObjectId | string;
+  parent: mongoose.Types.ObjectId | string;
 }
 
 export interface IUpdateContentElement {
   name?: string;
-  type?: ContentElementType;
+  type?: string;
   defaultContent?: string;
+  imageUrl?: string; // Add this field
   isActive?: boolean;
   metadata?: any;
   order?: number;
-  parent?: Schema.Types.ObjectId | string;
+  parent?: mongoose.Types.ObjectId | string;
 }

@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
-import { ISubSection } from '../types/sub.section.types';
+import { ICreateSubSection } from 'src/types/sub.section.types';
 
-const subSectionSchema = new Schema<ISubSection>(
+const subSectionSchema = new Schema<ICreateSubSection>(
   {
     name:{
       type: String,
@@ -49,6 +49,6 @@ const subSectionSchema = new Schema<ISubSection>(
   }
 );
 
-const SubSectionModel = mongoose.model<ISubSection>('SubSections', subSectionSchema);
+const SubSectionModel = mongoose.model<ICreateSubSection>('SubSections', subSectionSchema);
 
 export default SubSectionModel;

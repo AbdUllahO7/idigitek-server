@@ -3,7 +3,7 @@ import { sendSuccess } from '../utils/responseHandler';
 import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 import mongoose from 'mongoose';
 import ContentElementService from '../services/ContentElement.service';
-import cloudinaryService from '../services/cloudinary.service';
+import fs from 'fs-extra'; 
 
 class ContentElementController {
   /**
@@ -11,41 +11,44 @@ class ContentElementController {
    * @route POST /api/content-elements
    */
   createContentElement = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+
     const contentElement = await ContentElementService.createContentElement(req.body);
     sendSuccess(res, contentElement, 'Content element created successfully', 201);
   });
 
-   
-        /**
-      * Upload subsection image
-      * @route POST /api/subsections/:id/image
-      */
-     uploadElementImage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-       if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-         throw AppError.validation('Invalid subsection ID format');
-       }
-       if (!req.file) {
-         throw AppError.badRequest('No image file provided');
-       }
-       
-       // Get the uploaded image URL from the request file (provided by Cloudinary)
-       const imageUrl = (req.file as any).path;
-        console.log('Image URL:', imageUrl);
-       // Update the subsection with the new image URL
-       const subsection = await ContentElementService.updateContentElement(
-         req.params.id, 
-         { defaultContent: imageUrl }
-       );
-       
-       if (!subsection) {
-         // If update failed, delete the uploaded image to avoid orphaned files
-         const publicId = (req.file as any).filename;
-         await cloudinaryService.deleteImage(publicId);
-         throw AppError.notFound('Subsection not found');
-       }
-       
-       sendSuccess(res, subsection, 'Subsection image uploaded successfully');
-     });
+  /**
+   * Upload image for a content element
+   * @route POST /api/content-elements/:id/image
+   */
+  uploadElementImage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Check for valid ID format
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        throw AppError.validation('Invalid content element ID format');
+      }
+      
+      // Check if image file was provided
+      if (!req.file) {
+        throw AppError.badRequest('No image file provided');
+      }
+      
+      // Upload and update the element using the service method
+      const updatedElement = await ContentElementService.uploadElementImage(
+        req.params.id,
+        req?.file
+      );
+      
+      // Send successful response with updated element data
+      sendSuccess(res, updatedElement, 'Content element image uploaded successfully');
+    } finally {
+      // Clean up the temporary file after upload
+      if (req?.file && req?.file?.path) {
+        fs.remove(req?.file?.path).catch(err => 
+          console.error('Error removing temporary file:', err)
+        );
+      }
+    }
+  });
 
   /**
    * Get content element by ID

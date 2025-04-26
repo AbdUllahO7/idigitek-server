@@ -1,3 +1,4 @@
+// Update ContentElementModel.ts
 import mongoose, { Schema } from 'mongoose';
 import { IContentElement } from '../types/ContentElement.type';
 
@@ -11,11 +12,15 @@ const contentElementSchema = new Schema<IContentElement>(
     },
     type: {
       type: String,
-      enum: ['text', 'heading', 'paragraph', 'list', 'image', 'video', 'link', 'custom' , 'badge' , 'textarea'],
+      enum: ['text', 'heading', 'paragraph', 'list', 'image', 'video', 'link', 'custom', 'badge', 'textarea'],
       required: true,
       index: true,
     },
     defaultContent: {
+      type: String,
+      trim: true,
+    },
+    imageUrl: {
       type: String,
       trim: true,
     },
