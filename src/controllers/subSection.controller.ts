@@ -40,12 +40,12 @@ class SubSectionController {
    * @route GET /api/subsections/:id
    */
   getSubSectionById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const populateParents = req.query.populate !== 'false';
+    const populateSectionItem = req.query.populate !== 'false';
     const includeContentElements = req.query.includeContent === 'true';
     
     const subsection = await subSectionService.getSubSectionById(
       req.params.id, 
-      populateParents,
+      populateSectionItem,
       includeContentElements
     );
     
@@ -57,12 +57,12 @@ class SubSectionController {
    * @route GET /api/subsections/slug/:slug
    */
   getSubSectionBySlug = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const populateParents = req.query.populate !== 'false';
+    const populateSectionItem = req.query.populate !== 'false';
     const includeContentElements = req.query.includeContent === 'true';
     
     const subsection = await subSectionService.getSubSectionBySlug(
       req.params.slug, 
-      populateParents,
+      populateSectionItem,
       includeContentElements
     );
     
@@ -128,37 +128,56 @@ class SubSectionController {
     sendSuccess(res, result, result.message);
   });
 
-    /**
+  /**
    * Get complete subsection by ID with all content elements and translations
    * @route GET /api/subsections/:id/complete
    */
-    getCompleteSubSectionById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-      const populateParents = req.query.populate !== 'false';
-      
-      const subsection = await subSectionService.getCompleteSubSectionById(
-        req.params.id, 
-        populateParents
-      );
-      
-      sendSuccess(res, subsection, 'Complete subsection data retrieved successfully');
-    });
+  getCompleteSubSectionById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const populateSectionItem = req.query.populate !== 'false';
     
-    /**
-     * Get complete subsection by slug with all content elements and translations
-     * @route GET /api/subsections/slug/:slug/complete
-     */
-    getCompleteSubSectionBySlug = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-      const populateParents = req.query.populate !== 'false';
-      
-      const subsection = await subSectionService.getCompleteSubSectionBySlug(
-        req.params.slug, 
-        populateParents
-      );
-      
-      sendSuccess(res, subsection, 'Complete subsection data retrieved successfully');
-    });
+    const subsection = await subSectionService.getCompleteSubSectionById(
+      req.params.id, 
+      populateSectionItem
+    );
+    
+    sendSuccess(res, subsection, 'Complete subsection data retrieved successfully');
+  });
+    
+  /**
+   * Get complete subsection by slug with all content elements and translations
+   * @route GET /api/subsections/slug/:slug/complete
+   */
+  getCompleteSubSectionBySlug = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const populateSectionItem = req.query.populate !== 'false';
+    
+    const subsection = await subSectionService.getCompleteSubSectionBySlug(
+      req.params.slug, 
+      populateSectionItem
+    );
+    
+    sendSuccess(res, subsection, 'Complete subsection data retrieved successfully');
+  });
 
-
+  /**
+   * Get subsections by section item ID
+   * @route GET /api/subsections/sectionItem/:sectionItemId
+   */
+  getSubSectionsBySectionItemId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const activeOnly = req.query.activeOnly !== 'false';
+    const limit = parseInt(req.query.limit as string) || 100;
+    const skip = parseInt(req.query.skip as string) || 0;
+    const includeContentCount = req.query.includeContentCount === 'true';
+    
+    const subsections = await subSectionService.getSubSectionsBySectionItemId(
+      req.params.sectionItemId,
+      activeOnly,
+      limit,
+      skip,
+      includeContentCount
+    );
+    
+    sendSuccess(res, subsections, 'Subsections retrieved successfully');
+  });
 }
 
 export default new SubSectionController();

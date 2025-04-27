@@ -10,9 +10,10 @@ export interface ICreateSubSection {
   image?: string;
   isActive?: boolean;
   order?: number;
-  parentSections?: Schema.Types.ObjectId[] | string[];
+  sectionItem?: Schema.Types.ObjectId | string;
   languages?: Schema.Types.ObjectId[] | string[];
   metadata?: any;
+  isMain?: boolean;
 }
 
 export interface ICreateSubSection {
@@ -21,7 +22,7 @@ export interface ICreateSubSection {
   slug: string;
   isActive?: boolean;
   order?: number;
-  parentSections?: Schema.Types.ObjectId[] | string[];
+  sectionItem?: Schema.Types.ObjectId | string;
   languages?: Schema.Types.ObjectId[] | string[];
   metadata?: any;
 }
@@ -32,7 +33,7 @@ export interface IUpdateSubSection {
   slug?: string;
   isActive?: boolean;
   order?: number;
-  parentSections?: Schema.Types.ObjectId[] | string[];
+  sectionItem?: Schema.Types.ObjectId | string;
   languages?: Schema.Types.ObjectId[] | string[];
   metadata?: any;
 }

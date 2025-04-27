@@ -6,6 +6,7 @@ interface ISection {
   image: string;
   isActive: boolean;
   order: number;
+  sectionItems: Schema.Types.ObjectId[]; // Added reference to section items
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,7 +36,12 @@ const sectionSchema = new Schema<ISection>(
     order: {
       type: Number,
       default: 0,
-    }
+    },
+    // Added reference to section items under this section
+    sectionItems: [{
+      type: Schema.Types.ObjectId,
+      ref: 'SectionItems'
+    }]
   },
   {
     timestamps: true,

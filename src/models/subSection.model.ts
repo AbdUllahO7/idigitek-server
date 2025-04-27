@@ -29,11 +29,16 @@ const subSectionSchema = new Schema<ICreateSubSection>(
       type: Number,
       default: 0,
     },
-    // Parent sections that contain this subsection
-    parentSections: [{
+    isMain: {
+      type: Boolean,
+      default: false,
+    },
+    // Reference to the section item this subsection belongs to
+    sectionItem: {
       type: Schema.Types.ObjectId,
-      ref: 'Sections'
-    }],
+      ref: 'SectionItems',
+      required: true
+    },
     // Languages associated with this subsection
     languages: [{
       type: Schema.Types.ObjectId,
