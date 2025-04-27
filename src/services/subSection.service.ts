@@ -3,7 +3,7 @@ import { AppError } from '../middleware/errorHandler.middlerware';
 import SubSectionModel from '../models/subSection.model';
 import { ICreateSubSection, IUpdateSubSection } from '../types/sub.section.types';
 import mongoose from 'mongoose';
-import SectionModel from '../models/sections.model';
+import SectionItemModel from '../models/sectionItem.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
 
 class SubSectionService {
@@ -20,6 +20,14 @@ class SubSectionService {
                 throw AppError.badRequest(`Subsection with slug '${subsectionData.slug}' already exists`);
             }
 
+            // Check if section item exists
+            if (subsectionData.sectionItem) {
+                const sectionItemExists = await SectionItemModel.findById(subsectionData.sectionItem);
+                if (!sectionItemExists) {
+                    throw AppError.notFound(`Section item with ID ${subsectionData.sectionItem} not found`);
+                }
+            }
+
             // Create new subsection
             const subsection = new SubSectionModel({
                 name: subsectionData.name,
@@ -27,18 +35,19 @@ class SubSectionService {
                 slug: subsectionData.slug,
                 order: subsectionData.order || 0,
                 isActive: subsectionData.isActive !== undefined ? subsectionData.isActive : true,
-                parentSections: subsectionData.parentSections || [],
+                sectionItem: subsectionData.sectionItem,
                 languages: subsectionData.languages || [],
-                metadata: subsectionData.metadata
+                metadata: subsectionData.metadata,
+                isMain: subsectionData.isMain 
             });
             
             await subsection.save();
             
-            // Update parent sections if provided
-            if (subsectionData.parentSections && subsectionData.parentSections.length > 0) {
-                await SectionModel.updateMany(
-                { _id: { $in: subsectionData.parentSections } },
-                { $addToSet: { subSections: subsection._id } }
+            // Update section item if provided
+            if (subsectionData.sectionItem) {
+                await SectionItemModel.findByIdAndUpdate(
+                    subsectionData.sectionItem,
+                    { $addToSet: { subsections: subsection._id } }
                 );
             }
             
@@ -74,7 +83,7 @@ class SubSectionService {
                 .skip(skip)
                 .limit(limit)
                 .populate({
-                    path: 'parentSections',
+                    path: 'sectionItem',
                     match: activeOnly ? { isActive: true } : {},
                     options: { sort: { order: 1 } }
                 })
@@ -112,13 +121,13 @@ class SubSectionService {
     /**
      * Get subsection by ID
      * @param id The subsection ID
-     * @param populateParents Whether to populate parent sections
+     * @param populateSectionItem Whether to populate section item
      * @param includeContentElements Whether to include content elements
      * @returns Promise with the subsection if found
      */
     async getSubSectionById(
         id: string, 
-        populateParents = true,
+        populateSectionItem = true,
         includeContentElements = false
     ): Promise<ICreateSubSection> {
         try {
@@ -128,8 +137,13 @@ class SubSectionService {
 
             const query = SubSectionModel.findById(id);
             
-            if (populateParents) {
-                query.populate('parentSections').populate('languages');
+            if (populateSectionItem) {
+                query.populate({
+                    path: 'sectionItem',
+                    populate: {
+                        path: 'section'
+                    }
+                }).populate('languages');
             }
             
             const subsection = await query.exec();
@@ -159,20 +173,25 @@ class SubSectionService {
     /**
      * Get subsection by slug
      * @param slug The subsection slug
-     * @param populateParents Whether to populate parent sections
+     * @param populateSectionItem Whether to populate section item
      * @param includeContentElements Whether to include content elements
      * @returns Promise with the subsection if found
      */
     async getSubSectionBySlug(
         slug: string,
-        populateParents = true,
+        populateSectionItem = true,
         includeContentElements = false
     ): Promise<ICreateSubSection> {
         try {
             const query = SubSectionModel.findOne({ slug });
             
-            if (populateParents) {
-                query.populate('parentSections').populate('languages');
+            if (populateSectionItem) {
+                query.populate({
+                    path: 'sectionItem',
+                    populate: {
+                        path: 'section'
+                    }
+                }).populate('languages');
             }
             
             const subsection = await query.exec();
@@ -229,38 +248,25 @@ class SubSectionService {
                 }
             }
 
-        
-            
-            // Handle parent section updates if provided
-            if (updateData.parentSections) {
-                // Get current parents to find differences
-                const currentParents = subsection.parentSections.map(parent => 
-                    parent instanceof mongoose.Types.ObjectId ? parent.toString() : parent
-                );
-                
-                const newParents = updateData.parentSections.map(parent => 
-                    parent instanceof mongoose.Types.ObjectId ? parent.toString() : parent
-                );
-                
-                // Find parents to add and remove
-                const toAdd = newParents.filter(parent => !currentParents.includes(parent));
-                const toRemove = currentParents.filter(parent => !newParents.includes(parent));
-                
-                // Update sections that are being added (add this subsection)
-                if (toAdd.length > 0) {
-                    await SectionModel.updateMany(
-                        { _id: { $in: toAdd } },
-                        { $addToSet: { subSections: subsection._id } }
-                    );
+            // Handle section item update if provided
+            if (updateData.sectionItem && updateData.sectionItem.toString() !== subsection.sectionItem.toString()) {
+                // Check if new section item exists
+                const sectionItemExists = await SectionItemModel.findById(updateData.sectionItem);
+                if (!sectionItemExists) {
+                    throw AppError.notFound(`Section item with ID ${updateData.sectionItem} not found`);
                 }
                 
-                // Update sections that are being removed (remove this subsection)
-                if (toRemove.length > 0) {
-                    await SectionModel.updateMany(
-                        { _id: { $in: toRemove } },
-                        { $pull: { subSections: subsection._id } }
-                    );
-                }
+                // Remove from old section item
+                await SectionItemModel.findByIdAndUpdate(
+                    subsection.sectionItem,
+                    { $pull: { subsections: subsection._id } }
+                );
+                
+                // Add to new section item
+                await SectionItemModel.findByIdAndUpdate(
+                    updateData.sectionItem,
+                    { $addToSet: { subsections: subsection._id } }
+                );
             }
             
             // Update the subsection
@@ -268,9 +274,13 @@ class SubSectionService {
                 id,
                 { $set: updateData },
                 { new: true, runValidators: true }
-            ).populate('parentSections').populate('languages');
+            ).populate({
+                path: 'sectionItem',
+                populate: {
+                    path: 'section'
+                }
+            }).populate('languages');
             
-         
             return updatedSubSection;
         } catch (error) {
             if (error instanceof AppError) throw error;
@@ -299,7 +309,6 @@ class SubSectionService {
                 throw AppError.notFound(`Subsection with ID ${id} not found`);
             }
 
-
             if (hardDelete) {
                 // Check if there are content elements associated with this subsection
                 const contentElementsCount = await ContentElementModel.countDocuments({ parent: id });
@@ -310,13 +319,12 @@ class SubSectionService {
                 // Permanently delete
                 await SubSectionModel.findByIdAndDelete(id);
                 
-                // Remove this subsection from all parent sections
-                await SectionModel.updateMany(
-                    { subSections: id },
-                    { $pull: { subSections: id } }
+                // Remove this subsection from section item
+                await SectionItemModel.findByIdAndUpdate(
+                    subsection.sectionItem,
+                    { $pull: { subsections: id } }
                 );
                 
-         
                 return { success: true, message: 'Subsection deleted successfully' };
             } else {
                 // Soft delete
@@ -359,111 +367,195 @@ class SubSectionService {
             throw AppError.database('Failed to update subsections order', error);
         }
     }
-/**
+    
+    /**
      * Get subsection by ID with all content elements and their translations
      * @param id The subsection ID
-     * @param populateParents Whether to populate parent sections
+     * @param populateSectionItem Whether to populate section item
      * @returns Promise with the complete subsection data including elements and translations
      */
-async getCompleteSubSectionById(
-    id: string, 
-    populateParents = true
-): Promise<any> {
-    try {
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw AppError.validation('Invalid subsection ID format');
-        }
-
-        // First get the subsection
-        const query = SubSectionModel.findById(id);
-        
-        if (populateParents) {
-            query.populate('parentSections').populate('languages');
-        }
-        
-        const subsection = await query.exec();
-        
-        if (!subsection) {
-            throw AppError.notFound(`Subsection with ID ${id} not found`);
-        }
-        
-        // Get all content elements for this subsection
-        const contentElements = await ContentElementModel.find({
-            parent: id,
-            isActive: true
-        }).sort({ order: 1 });
-        
-        // Get all element IDs
-        const elementIds = contentElements.map(element => element._id);
-        
-        // Get all translations for these elements in a single query
-        const translations = await ContentTranslationModel.find({
-            contentElement: { $in: elementIds },
-            isActive: true
-        }).populate('language');
-        
-        // Group translations by content element ID
-        const translationsByElement: Record<string, any[]> = {};
-        
-        translations.forEach(translation => {
-            const elementId = translation.contentElement.toString();
-            if (!translationsByElement[elementId]) {
-                translationsByElement[elementId] = [];
+    async getCompleteSubSectionById(
+        id: string, 
+        populateSectionItem = true
+    ): Promise<any> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                throw AppError.validation('Invalid subsection ID format');
             }
-            translationsByElement[elementId].push(translation);
-        });
-        
-        // Add translations to each content element
-        const elementsWithTranslations = contentElements.map(element => {
-            const elementId = element._id.toString();
-            const elementData = element.toObject();
-            elementData.translations = translationsByElement[elementId] || [];
-            return elementData;
-        });
-        
-        // Create result object
-        const result = subsection.toObject();
-        result.contentElements = elementsWithTranslations;
-        
-        return result;
-    } catch (error) {
-        if (error instanceof AppError) throw error;
-        throw AppError.database('Failed to retrieve complete subsection data', error);
-    }
-}
 
-/**
- * Get subsection by slug with all content elements and their translations
- * @param slug The subsection slug
- * @param populateParents Whether to populate parent sections
- * @returns Promise with the complete subsection data including elements and translations
- */
-async getCompleteSubSectionBySlug(
-    slug: string,
-    populateParents = true
-): Promise<any> {
-    try {
-        // Find subsection by slug
-        const query = SubSectionModel.findOne({ slug });
-        
-        if (populateParents) {
-            query.populate('parentSections').populate('languages');
+            // First get the subsection
+            const query = SubSectionModel.findById(id);
+            
+            if (populateSectionItem) {
+                query.populate({
+                    path: 'sectionItem',
+                    populate: {
+                        path: 'section'
+                    }
+                }).populate('languages');
+            }
+            
+            const subsection = await query.exec();
+            
+            if (!subsection) {
+                throw AppError.notFound(`Subsection with ID ${id} not found`);
+            }
+            
+            // Get all content elements for this subsection
+            const contentElements = await ContentElementModel.find({
+                parent: id,
+                isActive: true
+            }).sort({ order: 1 });
+            
+            // Get all element IDs
+            const elementIds = contentElements.map(element => element._id);
+            
+            // Get all translations for these elements in a single query
+            const translations = await ContentTranslationModel.find({
+                contentElement: { $in: elementIds },
+                isActive: true
+            }).populate('language');
+            
+            // Group translations by content element ID
+            const translationsByElement: Record<string, any[]> = {};
+            
+            translations.forEach(translation => {
+                const elementId = translation.contentElement.toString();
+                if (!translationsByElement[elementId]) {
+                    translationsByElement[elementId] = [];
+                }
+                translationsByElement[elementId].push(translation);
+            });
+            
+            // Add translations to each content element
+            const elementsWithTranslations = contentElements.map(element => {
+                const elementId = element._id.toString();
+                const elementData = element.toObject();
+                elementData.translations = translationsByElement[elementId] || [];
+                return elementData;
+            });
+            
+            // Create result object
+            const result = subsection.toObject();
+            result.contentElements = elementsWithTranslations;
+            
+            return result;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database('Failed to retrieve complete subsection data', error);
         }
-        
-        const subsection = await query.exec();
-        
-        if (!subsection) {
-            throw AppError.notFound(`Subsection with slug ${slug} not found`);
-        }
-        
-        // Use the ID to get complete data
-        return this.getCompleteSubSectionById(subsection._id.toString(), false);
-    } catch (error) {
-        if (error instanceof AppError) throw error;
-        throw AppError.database('Failed to retrieve complete subsection data', error);
     }
-}
 
+    /**
+     * Get subsection by slug with all content elements and their translations
+     * @param slug The subsection slug
+     * @param populateSectionItem Whether to populate section item
+     * @returns Promise with the complete subsection data including elements and translations
+     */
+    async getCompleteSubSectionBySlug(
+        slug: string,
+        populateSectionItem = true
+    ): Promise<any> {
+        try {
+            // Find subsection by slug
+            const query = SubSectionModel.findOne({ slug });
+            
+            if (populateSectionItem) {
+                query.populate({
+                    path: 'sectionItem',
+                    populate: {
+                        path: 'section'
+                    }
+                }).populate('languages');
+            }
+            
+            const subsection = await query.exec();
+            
+            if (!subsection) {
+                throw AppError.notFound(`Subsection with slug ${slug} not found`);
+            }
+            
+            // Use the ID to get complete data
+            return this.getCompleteSubSectionById(subsection._id.toString(), false);
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database('Failed to retrieve complete subsection data', error);
+        }
+    }
+
+    /**
+     * Get subsections by section item ID
+     * @param sectionItemId The section item ID
+     * @param activeOnly Whether to return only active subsections
+     * @param limit Maximum number of subsections to return
+     * @param skip Number of subsections to skip
+     * @param includeContentCount Whether to include content element count
+     * @returns Promise with array of subsections belonging to the section item
+     */
+    async getSubSectionsBySectionItemId(
+        sectionItemId: string,
+        activeOnly = true,
+        limit = 100,
+        skip = 0,
+        includeContentCount = false
+    ): Promise<ICreateSubSection[]> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(sectionItemId)) {
+                throw AppError.validation('Invalid section item ID format');
+            }
+
+            // Build the query
+            const query: any = { 
+                sectionItem: sectionItemId 
+            };
+            
+            if (activeOnly) {
+                query.isActive = true;
+            }
+            
+            const subsections = await SubSectionModel.find(query)
+                .sort({ order: 1, createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate({
+                    path: 'sectionItem',
+                    populate: {
+                        path: 'section'
+                    },
+                    match: activeOnly ? { isActive: true } : {},
+                    options: { sort: { order: 1 } }
+                })
+                .populate('languages');
+            
+            // If requested, get content element count for each subsection
+            if (includeContentCount && subsections.length > 0) {
+                const subsectionIds = subsections.map(subsection => subsection._id);
+                
+                // Get counts for each subsection
+                const contentCounts = await ContentElementModel.aggregate([
+                    { $match: { parent: { $in: subsectionIds }, isActive: activeOnly } },
+                    { $group: { _id: '$parent', count: { $sum: 1 } } }
+                ]);
+                
+                // Create a map of subsection ID to count
+                const countsMap = contentCounts.reduce((acc, item) => {
+                    acc[item._id.toString()] = item.count;
+                    return acc;
+                }, {} as { [key: string]: number });
+                
+                // Add count to each subsection
+                subsections.forEach(subsection => {
+                    const id = subsection._id.toString();
+                    (subsection as any).contentCount = countsMap[id] || 0;
+                });
+            }
+            
+            return subsections;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database('Failed to retrieve subsections by section item ID', error);
+        }
+    }
 }
 
 export default new SubSectionService();
