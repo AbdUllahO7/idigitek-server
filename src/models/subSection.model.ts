@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { ICreateSubSection } from 'src/types/sub.section.types';
+import { ICreateSubSection } from '../types/sub.section.types';
 
 const subSectionSchema = new Schema<ICreateSubSection>(
   {

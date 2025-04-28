@@ -186,4 +186,61 @@ export class SectionController {
     
     return sendSuccess(res, section, 'Section with content retrieved successfully');
   });
+  
+  /**
+   * Get section with all related data (section items and subsections)
+   * @route GET /api/sections/:id/complete
+   */
+  getSectionWithCompleteData = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { includeInactive, languageId } = req.query;
+    
+    if (!id) {
+      throw AppError.badRequest('Section ID is required');
+    }
+    
+    // Convert string query param to boolean
+    const includeInactiveItems = includeInactive === 'true';
+    
+    const section = await this.sectionService.getSectionWithCompleteData(
+      id, 
+      includeInactiveItems,
+      languageId as string | undefined
+    );
+    
+    if (!section) {
+      throw AppError.notFound('Section not found');
+    }
+    
+    return sendSuccess(res, section, 'Section with complete data retrieved successfully');
+  });
+
+  /**
+   * Get all sections with their related data
+   * @route GET /api/sections/all/complete
+   */
+  getAllSectionsWithData = asyncHandler(async (req: Request, res: Response) => {
+    const { isActive, includeInactive, languageId } = req.query;
+    const query: any = {};
+    
+    // Filter active/inactive sections
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true';
+    }
+    
+    // Convert string query param to boolean
+    const includeInactiveItems = includeInactive === 'true';
+    
+    const sections = await this.sectionService.getAllSectionsWithData(
+      query, 
+      includeInactiveItems,
+      languageId as string | undefined
+    );
+    
+    return res.status(200).json({
+      success: true,
+      count: sections.length,
+      data: sections
+    });
+  });
 }

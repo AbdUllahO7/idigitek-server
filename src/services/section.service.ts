@@ -3,6 +3,7 @@ import ContentElementModel from '../models/ContentElement.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
 import SectionModel from '../models/sections.model';
 import SubSectionModel from '../models/subSection.model';
+import SectionItemModel from '../models/sectionItem.model';
 
 export class SectionService {
   // Create a new section
@@ -293,6 +294,224 @@ export class SectionService {
         elements: sectionElementsWithTranslations,
         subsections: subsectionsWithContent
       };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get section by ID with all related data (section items and subsections)
+   * @param id Section ID
+   * @param includeInactive Whether to include inactive items
+   * @param languageId Optional language ID for translations
+   */
+  async getSectionWithCompleteData(id: string, includeInactive: boolean = false, languageId?: string) {
+    try {
+      // 1. Fetch the section
+      const section = await SectionModel.findById(id);
+      if (!section) {
+        throw new Error('Section not found');
+      }
+      
+      // 2. Fetch section items that belong to this section
+      const query: any = { section: id };
+      if (!includeInactive) {
+        query.isActive = true;
+      }
+      
+      const sectionItems = await SectionItemModel.find(query).sort({ order: 1 });
+      const sectionItemIds = sectionItems.map(item => item._id);
+      
+      // 3. Fetch subsections for all section items
+      const subsectionQuery: any = { sectionItem: { $in: sectionItemIds } };
+      if (!includeInactive) {
+        subsectionQuery.isActive = true;
+      }
+      
+      const subsections = await SubSectionModel.find(subsectionQuery).sort({ order: 1 });
+      
+      // Group subsections by sectionItem
+      const subsectionsByItem = subsections.reduce((acc: Record<string, any[]>, subsection) => {
+        const itemId = subsection.sectionItem.toString();
+        if (!acc[itemId]) {
+          acc[itemId] = [];
+        }
+        acc[itemId].push(subsection);
+        return acc;
+      }, {});
+      
+      // 4. If language is provided, fetch content translations
+      let translationsMap: Record<string, any> = {};
+      
+      if (languageId) {
+        // Get all subsection IDs
+        const subsectionIds = subsections.map(sub => sub._id);
+        
+        // Find all content elements for section, section items and subsections
+        const contentElements = await ContentElementModel.find({
+          $or: [
+            { parentType: 'section', parentId: id },
+            { parentType: 'sectionItem', parentId: { $in: sectionItemIds } },
+            { parentType: 'subsection', parentId: { $in: subsectionIds } }
+          ]
+        }).sort({ order: 1 });
+        
+        const elementIds = contentElements.map(el => el._id);
+        
+        // Get all translations for these elements
+        const translations = await ContentTranslationModel.find({
+          elementId: { $in: elementIds },
+          languageId
+        });
+        
+        // Map translations to their elements
+        translationsMap = translations.reduce((map, trans) => {
+          map[trans.elementId.toString()] = trans.value;
+          return map;
+        }, {} as Record<string, any>);
+        
+        // Group content elements by parent
+        const elementsByParent = contentElements.reduce((acc: Record<string, any[]>, element) => {
+          const parentKey = `${element.parentType}-${element.parentId.toString()}`;
+          if (!acc[parentKey]) {
+            acc[parentKey] = [];
+          }
+          
+          // Add translation to element
+          const elementWithTranslation = {
+            ...element.toObject(),
+            value: translationsMap[element._id.toString()] || null
+          };
+          
+          acc[parentKey].push(elementWithTranslation);
+          return acc;
+        }, {});
+        
+        // Add content elements to section
+        const sectionKey = `section-${id}`;
+        section.elements = elementsByParent[sectionKey] || [];
+        
+        // Add content elements to each section item
+        sectionItems.forEach(item => {
+          const itemKey = `sectionItem-${item._id.toString()}`;
+          item.elements = elementsByParent[itemKey] || [];
+        });
+        
+        // Add content elements to each subsection
+        subsections.forEach(subsection => {
+          const subKey = `subsection-${subsection._id.toString()}`;
+          subsection.elements = elementsByParent[subKey] || [];
+        });
+      }
+      
+      // 5. Build the complete structure with all data
+      const sectionItemsWithSubsections = sectionItems.map(item => {
+        const itemId = item._id.toString();
+        return {
+          ...item.toObject(),
+          subsections: subsectionsByItem[itemId] || []
+        };
+      });
+      
+      const result = {
+        ...section.toObject(),
+        sectionItems: sectionItemsWithSubsections
+      };
+      
+      return result;
+      
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+  /**
+   * Get all sections with their related items and subsections
+   * @param query Filter query
+   * @param includeInactive Whether to include inactive items
+   * @param languageId Optional language ID for translations
+   */
+  async getAllSectionsWithData(query: any = {}, includeInactive: boolean = false, languageId?: string) {
+    try {
+      // 1. Fetch all sections
+      const sections = await SectionModel.find(query).sort({ order: 1 });
+      
+      // 2. Fetch all section items
+      const sectionIds = sections.map(section => section._id);
+      
+      const itemQuery: any = { section: { $in: sectionIds } };
+      if (!includeInactive) {
+        itemQuery.isActive = true;
+      }
+      
+      const allSectionItems = await SectionItemModel.find(itemQuery).sort({ order: 1 });
+      
+      // Group section items by section
+      const itemsBySection = allSectionItems.reduce((acc: Record<string, any[]>, item) => {
+        const sectionId = item.section.toString();
+        if (!acc[sectionId]) {
+          acc[sectionId] = [];
+        }
+        acc[sectionId].push(item);
+        return acc;
+      }, {});
+      
+      // 3. Fetch all subsections
+      const sectionItemIds = allSectionItems.map(item => item._id);
+      
+      const subsectionQuery: any = { sectionItem: { $in: sectionItemIds } };
+      if (!includeInactive) {
+        subsectionQuery.isActive = true;
+      }
+      
+      const allSubsections = await SubSectionModel.find(subsectionQuery).sort({ order: 1 });
+      
+      // Group subsections by section item
+      const subsectionsByItem = allSubsections.reduce((acc: Record<string, any[]>, subsection) => {
+        const itemId = subsection.sectionItem.toString();
+        if (!acc[itemId]) {
+          acc[itemId] = [];
+        }
+        acc[itemId].push(subsection);
+        return acc;
+      }, {});
+      
+      // 4. If language is provided, fetch content translations (similar to above)
+      let translationsMap: Record<string, any> = {};
+      let elementsByParent: Record<string, any[]> = {};
+      
+      if (languageId) {
+        // This part would be similar to the getSectionWithCompleteData method
+        // You would fetch all content elements and translations for sections, items, and subsections
+        // And organize them by parent ID
+      }
+      
+      // 5. Build complete structure with all data
+      const sectionsWithItems = sections.map(section => {
+        const sectionId = section._id.toString();
+        const items = itemsBySection[sectionId] || [];
+        
+        // Add subsections to each item
+        const itemsWithSubsections = items.map(item => {
+          const itemId = item._id.toString();
+          return {
+            ...item.toObject(),
+            subsections: subsectionsByItem[itemId] || [],
+            // Add elements if language was provided
+            ...(languageId ? { elements: elementsByParent[`sectionItem-${itemId}`] || [] } : {})
+          };
+        });
+        
+        return {
+          ...section.toObject(),
+          sectionItems: itemsWithSubsections,
+          // Add elements if language was provided
+          ...(languageId ? { elements: elementsByParent[`section-${sectionId}`] || [] } : {})
+        };
+      });
+      
+      return sectionsWithItems;
+      
     } catch (error) {
       throw error;
     }
