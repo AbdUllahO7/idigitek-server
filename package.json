@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "Secure Express.js API with MongoDB and TypeScript",
   "main": "dist/server.js",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon --exec ts-node --transpile-only src/server.ts",
     "build": "tsc",
+    "postbuild": "cp package.json dist/",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest"
