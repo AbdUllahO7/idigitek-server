@@ -3,7 +3,7 @@ import ContentElementModel from '../models/ContentElement.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
 import SectionModel from '../models/sections.model';
 import SubSectionModel from '../models/subSection.model';
-import SectionItemModel from '../models/sectionItem.model';
+import SectionItemModel from 'src/models/sectionItem.model';
 
 export class SectionService {
   // Create a new section
@@ -262,7 +262,7 @@ export class SectionService {
       
       // Map translations to their elements
       const translationsMap = translations.reduce((map, trans) => {
-        map[trans.elementId.toString()] = trans.value;
+        map[trans.id.toString()] = trans.content;
         return map;
       }, {} as Record<string, any>);
       
@@ -275,7 +275,7 @@ export class SectionService {
       // Process subsections with their elements and translations
       const subsectionsWithContent = await Promise.all(subsections.map(async (subsection) => {
         const subsectionElementsForThisSubsection = subsectionElements.filter(
-          el => el.parentId.toString() === subsection._id.toString()
+          el => el.parent.toString() === subsection._id.toString()
         );
         
         const elementsWithTranslations = subsectionElementsForThisSubsection.map(element => ({
@@ -299,13 +299,13 @@ export class SectionService {
     }
   }
 
-  /**
+   /**
    * Get section by ID with all related data (section items and subsections)
    * @param id Section ID
    * @param includeInactive Whether to include inactive items
    * @param languageId Optional language ID for translations
    */
-  async getSectionWithCompleteData(id: string, includeInactive: boolean = false, languageId?: string) {
+   async getSectionWithCompleteData(id: string, includeInactive: boolean = false, languageId?: string) {
     try {
       // 1. Fetch the section
       const section = await SectionModel.findById(id);
@@ -366,13 +366,13 @@ export class SectionService {
         
         // Map translations to their elements
         translationsMap = translations.reduce((map, trans) => {
-          map[trans.elementId.toString()] = trans.value;
+          map[trans.id.toString()] = trans.content;
           return map;
         }, {} as Record<string, any>);
         
         // Group content elements by parent
         const elementsByParent = contentElements.reduce((acc: Record<string, any[]>, element) => {
-          const parentKey = `${element.parentType}-${element.parentId.toString()}`;
+          const parentKey = `${element.type}-${element.parent.toString()}`;
           if (!acc[parentKey]) {
             acc[parentKey] = [];
           }
@@ -389,7 +389,7 @@ export class SectionService {
         
         // Add content elements to section
         const sectionKey = `section-${id}`;
-        section.elements = elementsByParent[sectionKey] || [];
+        section.sectionItems = elementsByParent[sectionKey] || [];
         
         // Add content elements to each section item
         sectionItems.forEach(item => {
@@ -424,7 +424,7 @@ export class SectionService {
       throw error;
     }
   }
-  
+
   /**
    * Get all sections with their related items and subsections
    * @param query Filter query
@@ -516,4 +516,5 @@ export class SectionService {
       throw error;
     }
   }
+
 }
