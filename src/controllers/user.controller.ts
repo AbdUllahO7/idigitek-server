@@ -2,8 +2,8 @@
 import { Request, Response } from 'express';
 import { sendSuccess, sendPaginatedSuccess } from '../utils/responseHandler';
 import { UserRole, UserStatus } from '../types/user.types';
-import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 import userService from '../services/user.service';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middleware';
 
 /**
  * User Controller

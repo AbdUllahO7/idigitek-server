@@ -1,4 +1,4 @@
-import { AppError } from '../middleware/errorHandler.middlerware';
+import { AppError } from '../middleware/errorHandler.middleware';
 import UserModel from '../models/user.model';
 import { IUserWithoutPassword, UserRole, UserStatus } from '../types/user.types';
 import { createPaginationMeta } from '../utils/responseHandler';

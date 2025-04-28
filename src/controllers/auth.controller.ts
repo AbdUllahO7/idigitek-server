@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
 import authService from '../services/auth.service';
 import userService from '../services/user.service';
-import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middleware';
 
 /**
  * Authentication Controller

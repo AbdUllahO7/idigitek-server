@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { AppError } from '../middleware/errorHandler.middlerware';
+import { AppError } from '../middleware/errorHandler.middleware';
 
 class CloudinaryService {
   constructor() {

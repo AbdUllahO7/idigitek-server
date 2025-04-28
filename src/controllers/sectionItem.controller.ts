@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
-import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middleware';
 import mongoose from 'mongoose';
 import sectionItemService from '../services/sectionItem.service';
 

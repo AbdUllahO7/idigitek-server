@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { UserRole } from '../types/user.types';
-import { AppError, ErrorType } from './errorHandler.middlerware';
+import { AppError, ErrorType } from './errorHandler.middleware';
 
 /**
  * Authenticate user middleware
