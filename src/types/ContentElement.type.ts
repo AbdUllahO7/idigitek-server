@@ -13,6 +13,7 @@ export interface IContentElement {
   parent: mongoose.Types.ObjectId | string;
   createdAt: Date;
   updatedAt: Date;
+  translations : any[],
 }
 
 export interface ICreateContentElement {

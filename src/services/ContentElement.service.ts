@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
-import { AppError } from '../middleware/errorHandler.middlerware';
 import SubSectionModel from '../models/subSection.model';
 import { IContentElement, ICreateContentElement, IUpdateContentElement } from '../types/ContentElement.type';
 import ContentElementModel from '../models/ContentElement.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
 import cloudinaryService from './cloudinary.service';
+import { AppError } from 'src/middleware/errorHandler.middleware';
+import { File } from 'multer';
 
 class ContentElementService {
   /**
@@ -35,7 +36,7 @@ class ContentElementService {
  * @param file The image file to upload
  * @returns Promise with the updated content element
  */
-    async uploadElementImage(id: string, file: Express.Multer.File): Promise<IContentElement> {
+    async uploadElementImage(id: string, file: File): Promise<IContentElement> {
       try {
         // Validate ID
         if (!mongoose.Types.ObjectId.isValid(id)) {

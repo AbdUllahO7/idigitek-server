@@ -1,4 +1,5 @@
 import { Schema, Document, Types } from 'mongoose';
+import { ICreateContentElement } from './ContentElement.type';
 
 export interface IService {
   _id?: string | Types.ObjectId;
@@ -16,6 +17,8 @@ export interface IService {
 
 export interface IServiceDocument extends Document, Omit<IService, '_id'> {
   _id: Types.ObjectId;
+  elements: ICreateContentElement[];
+
 }
 
 export interface IUpdateSectionItem {
