@@ -9,6 +9,7 @@ interface ISection {
   sectionItems: Schema.Types.ObjectId[]; // Added reference to section items
   createdAt: Date;
   updatedAt: Date;
+
 }
 
 const sectionSchema = new Schema<ISection>(

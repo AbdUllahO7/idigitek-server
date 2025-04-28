@@ -1,10 +1,10 @@
 import ContentElementModel from '../models/ContentElement.model';
-import { AppError } from '../middleware/errorHandler.middlerware';
 import SubSectionModel from '../models/subSection.model';
 import { ICreateSubSection, IUpdateSubSection } from '../types/sub.section.types';
 import mongoose from 'mongoose';
 import SectionItemModel from '../models/sectionItem.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
+import { AppError } from 'src/middleware/errorHandler.middleware';
 
 class SubSectionService {
     /**
@@ -437,7 +437,7 @@ class SubSectionService {
             
             // Create result object
             const result = subsection.toObject();
-            result.contentElements = elementsWithTranslations;
+            result.elements = elementsWithTranslations;
             
             return result;
         } catch (error) {

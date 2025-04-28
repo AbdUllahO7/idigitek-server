@@ -2,7 +2,7 @@
 import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
 import { SectionService } from '../services/section.service';
-import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middleware';
 /**
  * Section Controller
  * Handles all section-related requests

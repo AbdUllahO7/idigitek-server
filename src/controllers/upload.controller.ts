@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 import { sendSuccess } from '../utils/responseHandler';
 import cloudinaryService from '../services/cloudinary.service';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middleware';
+import { File } from 'multer';
 
 class UploadController {
   /**
@@ -39,7 +40,7 @@ class UploadController {
     }
 
     // Files have been uploaded to Cloudinary by the middleware
-    const files = req.files as Express.Multer.File[];
+    const files = req.files as File;
     const uploadedImages = files.map(file => ({
       url: file.path,
       publicId: file.filename
