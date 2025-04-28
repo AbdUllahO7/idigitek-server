@@ -7,7 +7,7 @@ import {
 import { generateAuthTokens, verifyToken } from '../utils/jwt';
 import crypto from 'crypto';
 import logger from '../config/logger';
-import { AppError } from '../middleware/errorHandler.middlerware';
+import { AppError } from '../middleware/errorHandler.middleware';
 
 class AuthService {
   /**

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { AppError } from '../middleware/errorHandler.middlerware';
+import { AppError } from '../middleware/errorHandler.middleware';
 import LanguagesModel from '../models/languages.model';
 import { IContentTranslation, ICreateContentTranslation, IUpdateContentTranslation } from '../types/ContentTranslation.type';
 import ContentElementModel from '../models/ContentElement.model';

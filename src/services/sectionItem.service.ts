@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import SectionModel from '../models/sections.model';
 import SubSectionModel from '../models/subSection.model';
 import { IService, IServiceDocument } from '../types/sectionItem.types';
-import { AppError } from 'src/middleware/errorHandler.middleware';
+import { AppError } from '../middleware/errorHandler.middleware';
 
 class SectionItemService {
     /**

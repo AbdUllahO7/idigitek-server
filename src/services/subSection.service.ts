@@ -4,7 +4,7 @@ import { ICreateSubSection, IUpdateSubSection } from '../types/sub.section.types
 import mongoose from 'mongoose';
 import SectionItemModel from '../models/sectionItem.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
-import { AppError } from 'src/middleware/errorHandler.middleware';
+import { AppError } from '../middleware/errorHandler.middleware';
 
 class SubSectionService {
     /**

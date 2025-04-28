@@ -16,11 +16,11 @@ import userRoutes from './routes/user.routes';
 import sectionRoutes from './routes/section.routes';
 import subsectionRoutes from './routes/subSection.routes';
 import { requestIdMiddleware } from './middleware/requestId.middlerware';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.middlerware';
 import languagesRoutes from './routes/language.routes';
 import contentElementRoutes from './routes/contentElement.routes';
 import contentTranslationRoutes from './routes/contentTranslation.routes';
 import sectionsItemsRoutes from './routes/sectionItem.routes';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.middleware';
 
 const app: Express = express();
 

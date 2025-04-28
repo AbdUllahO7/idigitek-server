@@ -4,7 +4,7 @@ import { IContentElement, ICreateContentElement, IUpdateContentElement } from '.
 import ContentElementModel from '../models/ContentElement.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
 import cloudinaryService from './cloudinary.service';
-import { AppError } from 'src/middleware/errorHandler.middleware';
+import { AppError } from '../middleware/errorHandler.middleware';
 import { File } from 'multer';
 
 class ContentElementService {

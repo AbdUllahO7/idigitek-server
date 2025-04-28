@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { sendSuccess } from '../utils/responseHandler';
-import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 import mongoose from 'mongoose';
 import ContentTranslationService from '../services/ContentTranslation.service';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middleware';
 
 class ContentTranslationController {
   /**

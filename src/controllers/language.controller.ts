@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { LanguageService } from '../services/language.service';
-import { AppError, asyncHandler } from '../middleware/errorHandler.middlerware';
 import { sendSuccess } from '../utils/responseHandler';
+import { AppError, asyncHandler } from '../middleware/errorHandler.middleware';
 
 const languageService = new LanguageService();
 

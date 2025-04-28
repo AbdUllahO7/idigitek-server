@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import LanguageModel from "../models/languages.model";
 import { ILanguages, ICreateLanguage, IUpdateLanguage } from "../types/languages.types";
-import { AppError } from "../middleware/errorHandler.middlerware";
+import { AppError } from "../middleware/errorHandler.middleware";
 
 export class LanguageService {
   // Create a new language
