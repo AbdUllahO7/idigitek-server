@@ -3,7 +3,7 @@ import ContentElementModel from '../models/ContentElement.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
 import SectionModel from '../models/sections.model';
 import SubSectionModel from '../models/subSection.model';
-import SectionItemModel from 'src/models/sectionItem.model';
+import SectionItemModel from '../models/sectionItem.model';
 
 export class SectionService {
   // Create a new section
