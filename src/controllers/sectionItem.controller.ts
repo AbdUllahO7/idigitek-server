@@ -10,7 +10,6 @@ class SectionItemController {
    * @route POST /api/section-items
    */
   createSectionItem = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    console.log('req.body', req.body);
     const sectionItem = await sectionItemService.createSectionItem(req.body);
     sendSuccess(res, sectionItem, 'Section item created successfully', 201);
   });

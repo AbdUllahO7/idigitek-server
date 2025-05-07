@@ -1,3 +1,4 @@
+import { required } from "joi";
 import mongoose, { Schema } from "mongoose";
 
 interface ISection {
@@ -6,6 +7,7 @@ interface ISection {
   image: string;
   isActive: boolean;
   order: number;
+  WibSite : Schema.Types.ObjectId,
   sectionItems: Schema.Types.ObjectId[]; // Added reference to section items
   createdAt: Date;
   updatedAt: Date;
@@ -38,11 +40,15 @@ const sectionSchema = new Schema<ISection>(
       type: Number,
       default: 0,
     },
-    // Added reference to section items under this section
     sectionItems: [{
       type: Schema.Types.ObjectId,
       ref: 'SectionItems'
-    }]
+    }],
+    WibSite : {
+      type: Schema.Types.ObjectId,
+      ref: 'WibSite',
+      required : true 
+    }
   },
   {
     timestamps: true,

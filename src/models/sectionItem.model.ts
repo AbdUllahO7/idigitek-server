@@ -30,12 +30,16 @@ const sectionItemSchema = new Schema<IServiceDocument>(
       type: Boolean,
       default: false,
     },
+    WibSite : {
+      type: Schema.Types.ObjectId,
+      ref: 'WibSite',
+      required : true 
+    },
     section: {
       type: Schema.Types.ObjectId,
       ref: 'Sections',
       required: true
     },
-    // Optional reference to subsections that belong to this section item
     subsections: [{
       type: Schema.Types.ObjectId,
       ref: 'SubSections'
