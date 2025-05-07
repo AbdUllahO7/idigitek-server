@@ -1,27 +1,29 @@
-import express from 'express';
-import SubSectionController from '../controllers/subSection.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { Router } from 'express';
+import subSectionController from '../controllers/subSection.controller';
 
-const router = express.Router();
+const router = Router();
 
-// Base routes for subsections
-router.post('/', authenticate, SubSectionController.createSubSection);
-router.get('/', SubSectionController.getAllSubSections);
+// Base routes
+router.get('/', subSectionController.getAllSubSections);
+router.post('/',  subSectionController.createSubSection);
+router.get('/:id', subSectionController.getSubSectionById);
+router.get('/:id/complete', subSectionController.getCompleteSubSectionById);
+router.put('/:id',  subSectionController.updateSubSection);
+router.delete('/:id',  subSectionController.deleteSubSection);
 
-// Route for getting subsection by slug - must come before /:id route to avoid conflicts
-router.get('/slug/:slug', SubSectionController.getSubSectionBySlug);
-router.get('/slug/:slug/complete', SubSectionController.getCompleteSubSectionBySlug);
+// Order management
+router.put('/order',  subSectionController.updateSubsectionsOrder);
 
-// Route for updating order of multiple subsections
-router.put('/order', authenticate, SubSectionController.updateSubsectionsOrder);
+// Slug routes
+router.get('/slug/:slug', subSectionController.getSubSectionBySlug);
+router.get('/slug/:slug/complete', subSectionController.getCompleteSubSectionBySlug);
 
-// Get subsections by section item
-router.get('/sectionItem/:sectionItemId', SubSectionController.getSubSectionsBySectionItemId);
+// Section item routes
+router.get('/sectionItem/:sectionItemId', subSectionController.getSubSectionsBySectionItemId);
 
-// Individual subsection routes
-router.get('/:id', SubSectionController.getSubSectionById);
-router.get('/:id/complete', SubSectionController.getCompleteSubSectionById);
-router.put('/:id', authenticate, SubSectionController.updateSubSection);
-router.delete('/:id', authenticate, SubSectionController.deleteSubSection);
+// Section routes   
+router.get('/section/:sectionId', subSectionController.getCompleteSubSectionsBySectionId);
+router.get('/section/:sectionId/main', subSectionController.getMainSubSectionBySectionId);
+router.get('/section/:sectionId/complete', subSectionController.getCompleteSubSectionsBySectionId); // New route
 
 export default router;

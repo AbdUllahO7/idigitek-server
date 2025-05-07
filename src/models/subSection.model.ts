@@ -33,18 +33,18 @@ const subSectionSchema = new Schema<ICreateSubSection>(
       type: Boolean,
       default: false,
     },
-    // Reference to the section item this subsection belongs to
     sectionItem: {
       type: Schema.Types.ObjectId,
       ref: 'SectionItems',
-      required: true
     },
-    // Languages associated with this subsection
+    section: {
+      type: Schema.Types.ObjectId,
+      ref: 'Sections'
+    },
     languages: [{
       type: Schema.Types.ObjectId,
       ref: 'Languages'
     }],
-    // Metadata for additional configuration
     metadata: {
       type: Schema.Types.Mixed,
     }
@@ -53,6 +53,24 @@ const subSectionSchema = new Schema<ICreateSubSection>(
     timestamps: true,
   }
 );
+
+// Add a pre-save middleware to ensure consistency when isMain is true
+subSectionSchema.pre('save', async function(next) {
+  if (this.isMain && !this.section) {
+    // If subsection is marked as main but section isn't set, try to get it from sectionItem
+    try {
+      const SectionItemModel = mongoose.model('SectionItems');
+      const sectionItem = await SectionItemModel.findById(this.sectionItem);
+      if (sectionItem) {
+        this.section = sectionItem.section;
+      }
+    } catch (error) {
+      // Just continue if we can't set the section
+      console.error('Error setting section from sectionItem:', error);
+    }
+  }
+  next();
+});
 
 const SubSectionModel = mongoose.model<ICreateSubSection>('SubSections', subSectionSchema);
 

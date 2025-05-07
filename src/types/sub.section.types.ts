@@ -1,23 +1,19 @@
-import { Schema } from 'mongoose';
-import { ICreateContentElement } from './ContentElement.type';
+import { Document, Types } from 'mongoose';
 
-
-
-export interface ICreateSubSection {
+export interface ICreateSubSection extends Document {
   name: string;
   description?: string;
   slug: string;
-  image?: string;
-  isActive?: boolean;
-  order?: number;
-  sectionItem?: Schema.Types.ObjectId | string;
-  languages?: Schema.Types.ObjectId[] | string[];
-  metadata?: any;
-  isMain?: boolean;
-  elements: ICreateContentElement[];
-
+  isActive: boolean;
+  order: number;
+  isMain: boolean;
+  sectionItem: Types.ObjectId;
+  section?: Types.ObjectId; // New direct relation to section
+  languages?: Types.ObjectId[];
+  metadata?: Record<string, any>;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
-
 
 export interface IUpdateSubSection {
   name?: string;
@@ -25,7 +21,9 @@ export interface IUpdateSubSection {
   slug?: string;
   isActive?: boolean;
   order?: number;
-  sectionItem?: Schema.Types.ObjectId | string;
-  languages?: Schema.Types.ObjectId[] | string[];
-  metadata?: any;
+  isMain?: boolean;
+  sectionItem?: Types.ObjectId;
+  section?: Types.ObjectId; // New direct relation to section
+  languages?: Types.ObjectId[];
+  metadata?: Record<string, any>;
 }

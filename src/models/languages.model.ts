@@ -25,7 +25,7 @@ const languagesSchema = new Schema<ILanguages>(
     },
     subSections: [{
         type: Schema.Types.ObjectId,
-        ref: 'SubSections' // Reference to the SubSection model
+        ref: 'SubSections' 
     }]
     },
     {

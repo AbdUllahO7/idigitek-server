@@ -10,7 +10,7 @@ class SectionItemService {
      * Create a new section item
      * @param itemData The section item data to create
      * @returns Promise with the created section item
-     */
+    */
     async createSectionItem(itemData: IService): Promise<IServiceDocument> {
         try {
             // Check if the section exists
@@ -19,6 +19,9 @@ class SectionItemService {
                 if (!sectionExists) {
                     throw AppError.notFound(`Section with ID ${itemData.subsections} not found`);
                 }
+            }
+            if (!itemData.WibSite) {
+                throw AppError.notFound(`Web Site not send with the request `);
             }
             
             // Create new section item
@@ -30,6 +33,7 @@ class SectionItemService {
                 isActive: itemData.isActive !== undefined ? itemData.isActive : true,
                 section: itemData.section,
                 isMain: itemData.isMain ,
+                WibSite : itemData.WibSite
             });
             
             await sectionItem.save();

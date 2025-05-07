@@ -2,15 +2,15 @@
   "name": "secure-express-ts-api",
   "version": "1.0.0",
   "description": "Secure Express.js API with MongoDB and TypeScript",
-  "main": "dist/server.js",
+  "main": "src/server.ts",
   "engines": {
     "node": "18.x"
   },
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "ts-node src/server.ts",
     "dev": "nodemon --exec ts-node --transpile-only src/server.ts",
     "build": "tsc",
-    "postbuild": "cp package.json dist/",
+    "vercel-build": "echo 'Vercel deployment - using direct TypeScript compilation'",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest"
@@ -42,6 +42,8 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.2",
     "multer-storage-cloudinary": "^4.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.3",
     "uuid": "^11.1.0",
     "winston": "^3.11.0",
     "xss-clean": "^0.1.4"
@@ -61,8 +63,6 @@
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "prettier": "^3.1.0",
-    "ts-jest": "^29.1.1",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.3.3"
+    "ts-jest": "^29.1.1"
   }
 }
