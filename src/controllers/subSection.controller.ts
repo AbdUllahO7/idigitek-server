@@ -53,24 +53,24 @@ class SubSectionController {
     sendSuccess(res, subsection, 'Subsection retrieved successfully');
   });
 
-/**
- * Get complete subsections by section ID with all content elements and translations
- * @route GET /api/subsections/section/:sectionId/complete
- */
-  getCompleteSubSectionsBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const activeOnly = req.query.activeOnly !== 'false';
-    const limit = parseInt(req.query.limit as string) || 100;
-    const skip = parseInt(req.query.skip as string) || 0;
-    
-    const subsections = await subSectionService.getCompleteSubSectionsBySectionId(
-      req.params.sectionId,
-      activeOnly,
-      limit,
-      skip
-    );
-    
-    sendSuccess(res, subsections, 'Complete subsections retrieved successfully');
-  });
+  /**
+   * Get complete subsections by section ID with all content elements and translations
+   * @route GET /api/subsections/section/:sectionId/complete
+   */
+    getCompleteSubSectionsBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      const activeOnly = req.query.activeOnly !== 'false';
+      const limit = parseInt(req.query.limit as string) || 100;
+      const skip = parseInt(req.query.skip as string) || 0;
+      
+      const subsections = await subSectionService.getCompleteSubSectionsBySectionId(
+        req.params.sectionId,
+        activeOnly,
+        limit,
+        skip
+      );
+      
+      sendSuccess(res, subsections, 'Complete subsections retrieved successfully');
+    });
 
   /**
    * Get main subsection for a section
@@ -217,7 +217,61 @@ class SubSectionController {
     
     sendSuccess(res, subsections, 'Subsections retrieved successfully');
   });
+  /**
+ * Get subsections by WebSite ID
+ * @route GET /api/subsections/website/:websiteId
+ */
+getSubSectionsByWebSiteId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const activeOnly = req.query.activeOnly !== 'false';
+  const limit = parseInt(req.query.limit as string) || 100;
+  const skip = parseInt(req.query.skip as string) || 0;
+  const includeContentCount = req.query.includeContentCount === 'true';
   
+  const subsections = await subSectionService.getSubSectionsByWebSiteId(
+    req.params.websiteId,
+    activeOnly,
+    limit,
+    skip,
+    includeContentCount
+  );
+  
+  sendSuccess(res, subsections, 'Subsections retrieved successfully');
+});
+
+  /**
+   * Get complete subsections by WebSite ID with all content elements and translations
+   * @route GET /api/subsections/website/:websiteId/complete
+   */
+  getCompleteSubSectionsByWebSiteId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const activeOnly = req.query.activeOnly !== 'false';
+    const limit = parseInt(req.query.limit as string) || 100;
+    const skip = parseInt(req.query.skip as string) || 0;
+    
+    const subsections = await subSectionService.getCompleteSubSectionsByWebSiteId(
+      req.params.websiteId,
+      activeOnly,
+      limit,
+      skip
+    );
+    
+    sendSuccess(res, subsections, 'Complete subsections retrieved successfully');
+  });
+  /**
+ * Get main subsection for a WebSite
+ * @route GET /api/subsections/website/:websiteId/main
+ */
+getMainSubSectionByWebSiteId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const mainSubsection = await subSectionService.getMainSubSectionByWebSiteId(
+      req.params.websiteId
+  );
+  
+  if (!mainSubsection) {
+      sendSuccess(res, null, 'No main subsection found for this WebSite');
+      return;
+  }
+  
+  sendSuccess(res, mainSubsection, 'Main subsection retrieved successfully');
+});
 }
 
 export default new SubSectionController();

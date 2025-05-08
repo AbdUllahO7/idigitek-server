@@ -7,7 +7,7 @@ interface ISection {
   image: string;
   isActive: boolean;
   order: number;
-  WibSite : Schema.Types.ObjectId,
+  WebSite : Schema.Types.ObjectId,
   sectionItems: Schema.Types.ObjectId[]; // Added reference to section items
   createdAt: Date;
   updatedAt: Date;
@@ -44,9 +44,9 @@ const sectionSchema = new Schema<ISection>(
       type: Schema.Types.ObjectId,
       ref: 'SectionItems'
     }],
-    WibSite : {
+    WebSite : {
       type: Schema.Types.ObjectId,
-      ref: 'WibSite',
+      ref: 'WebSite',
       required : true 
     }
   },

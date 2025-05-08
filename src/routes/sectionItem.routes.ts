@@ -13,6 +13,7 @@ router.put('/order', authenticate, SectionItemController.updateSectionItemsOrder
 
 // Get items by parent section
 router.get('/section/:sectionId', SectionItemController.getSectionItemsBySectionId);
+router.get('/website/:websiteId', SectionItemController.getSectionItemsByWebSiteId);
 
 // Individual section item routes
 router.get('/:id', SectionItemController.getSectionItemById);

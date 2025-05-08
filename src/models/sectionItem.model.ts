@@ -30,9 +30,9 @@ const sectionItemSchema = new Schema<IServiceDocument>(
       type: Boolean,
       default: false,
     },
-    WibSite : {
+    WebSite : {
       type: Schema.Types.ObjectId,
-      ref: 'WibSite',
+      ref: 'WebSite',
       required : true 
     },
     section: {
