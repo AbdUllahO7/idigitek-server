@@ -155,7 +155,7 @@ export class WebSiteController {
       res.status(200).json({
         status: 'success',
         data: {
-          website: updatedWebSite
+          websiteId: updatedWebSite
         }
       });
     } catch (error) {

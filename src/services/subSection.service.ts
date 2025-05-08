@@ -44,7 +44,7 @@ class SubSectionService {
                     section: subsectionData.section,
                     languages: subsectionData.languages || [],
                     isMain: subsectionData.isMain,
-                    WebSite : subsectionData.WebSite 
+                    WebSiteId : subsectionData.WebSiteId 
                 });
                 
             await subsection.save();
@@ -779,7 +779,7 @@ class SubSectionService {
 
             // Build the query
             const query: any = { 
-                WebSite: websiteId 
+                WebSiteId: websiteId 
             };
             
             if (activeOnly) {
@@ -852,7 +852,7 @@ class SubSectionService {
 
             // Build the query to get subsections
             const query: any = { 
-                WebSite: websiteId 
+                WebSiteId: websiteId 
             };
             
             if (activeOnly) {
@@ -949,7 +949,7 @@ class SubSectionService {
             }
 
             const mainSubsection = await SubSectionModel.findOne({
-                WebSite: websiteId,
+                WebSiteId: websiteId,
                 isMain: true,
                 isActive: true
             }).populate({

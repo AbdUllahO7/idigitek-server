@@ -39,7 +39,7 @@ const subSectionSchema = new Schema<ICreateSubSection>(
       type: Schema.Types.ObjectId,
       ref: 'Sections'
     },
-    WebSite : {
+    WebSiteId : {
       type: Schema.Types.ObjectId,
       ref: 'WebSite',
       required : true 

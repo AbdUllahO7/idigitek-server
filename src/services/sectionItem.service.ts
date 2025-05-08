@@ -22,7 +22,7 @@ class SectionItemService {
                     throw AppError.notFound(`Section with ID ${itemData.subsections} not found`);
                 }
             }
-            if (!itemData.WebSite) {
+            if (!itemData.WebSiteId) {
                 throw AppError.notFound(`Web Site not send with the request `);
             }
             
@@ -35,7 +35,7 @@ class SectionItemService {
                 isActive: itemData.isActive !== undefined ? itemData.isActive : true,
                 section: itemData.section,
                 isMain: itemData.isMain ,
-                WebSite : itemData.WebSite
+                WebSiteId : itemData.WebSiteId
             });
             
             await sectionItem.save();
@@ -251,7 +251,7 @@ class SectionItemService {
 
             // Build the query
             const query: any = { 
-                WebSite: websiteId 
+                WebSiteId: websiteId 
             };
             
             if (activeOnly) {

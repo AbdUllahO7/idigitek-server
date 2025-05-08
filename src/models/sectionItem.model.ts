@@ -30,7 +30,7 @@ const sectionItemSchema = new Schema<IServiceDocument>(
       type: Boolean,
       default: false,
     },
-    WebSite : {
+    WebSiteId : {
       type: Schema.Types.ObjectId,
       ref: 'WebSite',
       required : true 
