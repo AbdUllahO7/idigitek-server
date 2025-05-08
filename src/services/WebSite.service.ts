@@ -250,12 +250,14 @@ export class WebSiteService {
     /**
      * Get all users associated with a website
      */
-    async getWebSiteUsers(WebSiteId: string, requestingUserId: string): Promise<any[]> {
+    async getWebSiteUsers(webSiteId: string, requestingUserId: string): Promise<any[]> {
         // Verify the requesting user has access to this website
         const requestingWebsiteUser = await WebSiteUserModel.findOne({ 
-            WebSiteId, 
+            webSiteId, 
             userId: requestingUserId
         });
+
+        console.log("requestingWebsiteUser",requestingWebsiteUser)
         
         if (!requestingWebsiteUser) {
             throw new AppError('You do not have access to this website', 403);

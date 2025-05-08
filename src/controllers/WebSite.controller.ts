@@ -246,6 +246,9 @@ export class WebSiteController {
     try {
       const { id } = req.params;
       const requestingUserId = req.user.id; // Assuming req.user is set by auth middleware
+
+      console.log("id : " , id )
+      console.log("req.user.id" , req.user.id)
       
       const users = await webSiteService.getWebSiteUsers(id, requestingUserId);
       

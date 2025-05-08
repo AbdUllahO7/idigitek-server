@@ -3,7 +3,7 @@ import mongoose, { Schema } from 'mongoose';
 interface IWebSiteUser {
   userId: Schema.Types.ObjectId;
   webSiteId: Schema.Types.ObjectId;
-  role: string; // 'owner', 'editor', 'viewer'
+  role: string; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,7 +24,7 @@ const webSiteUserSchema = new Schema<IWebSiteUser>(
       type: String,
       required: true,
       default: 'editor',
-      enum: ['owner', 'editor', 'viewer']
+      enum: ['owner' , 'superAdmin' , 'user' , 'Admin']
     }
   },
   {
