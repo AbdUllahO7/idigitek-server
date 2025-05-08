@@ -250,10 +250,10 @@ export class WebSiteService {
     /**
      * Get all users associated with a website
      */
-    async getWebSiteUsers(webSiteId: string, requestingUserId: string): Promise<any[]> {
+    async getWebSiteUsers(WebSiteId: string, requestingUserId: string): Promise<any[]> {
         // Verify the requesting user has access to this website
         const requestingWebsiteUser = await WebSiteUserModel.findOne({ 
-            webSiteId, 
+            WebSiteId, 
             userId: requestingUserId
         });
         

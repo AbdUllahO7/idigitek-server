@@ -13,7 +13,7 @@ export interface IService {
   updatedAt?: Date;
   section: Schema.Types.ObjectId | string;
   isMain?: boolean;
-  WebSite : Schema.Types.ObjectId,
+  WebSiteId : Schema.Types.ObjectId,
 }
 
 export interface IServiceDocument extends Document, Omit<IService, '_id'> {

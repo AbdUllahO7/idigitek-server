@@ -10,7 +10,7 @@ export interface ICreateSubSection extends Document {
   sectionItem: Types.ObjectId;
   section?: Types.ObjectId; // New direct relation to section
   languages?: Types.ObjectId[];
-  WebSite : Schema.Types.ObjectId,
+  WebSiteId : Schema.Types.ObjectId,
   metadata?: Record<string, any>;
   createdAt?: Date;
   updatedAt?: Date;
