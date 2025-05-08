@@ -14,12 +14,6 @@ class SubSectionService {
      */
     async createSubSection(subsectionData: ICreateSubSection): Promise<ICreateSubSection> {
         try {
-            console.log("subsectionData", subsectionData);
-            // Check if subsection with this slug already exists
-            const existingSubSection = await SubSectionModel.findOne({ slug: subsectionData.slug });
-            if (existingSubSection) {
-                throw AppError.badRequest(`Subsection with slug '${subsectionData.slug}' already exists`);
-            }
 
             // Check if section item exists
             if (subsectionData.sectionItem) {
@@ -34,24 +28,25 @@ class SubSectionService {
                 }
             }
             
-            // If isMain is true, check if other main subsections exist for this section
-            if (subsectionData.isMain && subsectionData.section) {
-                await this.handleMainSubSection(null, subsectionData.section);
-            }
+                // If isMain is true, check if other main subsections exist for this section
+                if (subsectionData.isMain && subsectionData.section) {
+                    await this.handleMainSubSection(null, subsectionData.section);
+                }
 
-            // Create new subsection
-            const subsection = new SubSectionModel({
-                name: subsectionData.name,
-                description: subsectionData.description,
-                slug: subsectionData.slug,
-                order: subsectionData.order || 0,
-                isActive: subsectionData.isActive !== undefined ? subsectionData.isActive : true,
-                sectionItem: subsectionData.sectionItem,
-                section: subsectionData.section,
-                languages: subsectionData.languages || [],
-                isMain: subsectionData.isMain 
-            });
-            
+                // Create new subsection
+                const subsection = new SubSectionModel({
+                    name: subsectionData.name,
+                    description: subsectionData.description,
+                    slug: subsectionData.slug,
+                    order: subsectionData.order || 0,
+                    isActive: subsectionData.isActive !== undefined ? subsectionData.isActive : true,
+                    sectionItem: subsectionData.sectionItem,
+                    section: subsectionData.section,
+                    languages: subsectionData.languages || [],
+                    isMain: subsectionData.isMain,
+                    WebSite : subsectionData.WebSite 
+                });
+                
             await subsection.save();
             
             // Update section item if provided
@@ -212,111 +207,111 @@ class SubSectionService {
         }
     }
 
- /**
- * Get subsections by section ID with all content elements and their translations
- * @param sectionId The section ID
- * @param activeOnly Whether to return only active subsections
- * @param limit Maximum number of subsections to return
- * @param skip Number of subsections to skip
- * @returns Promise with array of complete subsections data including elements and translations
- */
-async getCompleteSubSectionsBySectionId(
-    sectionId: string,
-    activeOnly = true,
-    limit = 100,
-    skip = 0
-): Promise<any[]> {
-    try {
-        if (!mongoose.Types.ObjectId.isValid(sectionId)) {
-            throw AppError.validation('Invalid section ID format');
-        }
-
-        // Build the query to get subsections
-        const query: any = { 
-            section: sectionId 
-        };
-        
-        if (activeOnly) {
-            query.isActive = true;
-        }
-        
-        // Get subsections with basic population
-        const subsections = await SubSectionModel.find(query)
-            .sort({ order: 1, createdAt: -1 })
-            .skip(skip)
-            .limit(limit)
-            .populate({
-                path: 'sectionItem',
-                populate: {
-                    path: 'section'
-                },
-                match: activeOnly ? { isActive: true } : {}
-            })
-            .populate('section')
-            .populate('languages');
-        
-        if (subsections.length === 0) {
-            return [];
-        }
-
-        // Get all subsection IDs
-        const subsectionIds = subsections.map(sub => sub._id);
-
-        // Get all content elements for these subsections
-        const contentElements = await ContentElementModel.find({
-            parent: { $in: subsectionIds },
-            isActive: activeOnly
-        }).sort({ order: 1 });
-
-        // Get all element IDs
-        const elementIds = contentElements.map(element => element._id);
-
-        // Get all translations for these elements in a single query
-        const translations = await ContentTranslationModel.find({
-            contentElement: { $in: elementIds },
-            isActive: activeOnly
-        }).populate('language');
-
-        // Group translations by content element ID
-        const translationsByElement: Record<string, any[]> = {};
-        
-        translations.forEach(translation => {
-            const elementId = translation.contentElement.toString();
-            if (!translationsByElement[elementId]) {
-                translationsByElement[elementId] = [];
+    /**
+     * Get subsections by section ID with all content elements and their translations
+     * @param sectionId The section ID
+     * @param activeOnly Whether to return only active subsections
+     * @param limit Maximum number of subsections to return
+     * @param skip Number of subsections to skip
+     * @returns Promise with array of complete subsections data including elements and translations
+     */
+    async getCompleteSubSectionsBySectionId(
+        sectionId: string,
+        activeOnly = true,
+        limit = 100,
+        skip = 0
+    ): Promise<any[]> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(sectionId)) {
+                throw AppError.validation('Invalid section ID format');
             }
-            translationsByElement[elementId].push(translation);
-        });
 
-        // Group content elements by subsection ID
-        const elementsBySubsection: Record<string, any[]> = {};
-        
-        contentElements.forEach(element => {
-            const subsectionId = element.parent.toString();
-            if (!elementsBySubsection[subsectionId]) {
-                elementsBySubsection[subsectionId] = [];
+            // Build the query to get subsections
+            const query: any = { 
+                section: sectionId 
+            };
+            
+            if (activeOnly) {
+                query.isActive = true;
             }
             
-            const elementData = element.toObject();
-            const elementId = element._id.toString();
-            elementData.translations = translationsByElement[elementId] || [];
-            elementsBySubsection[subsectionId].push(elementData);
-        });
+            // Get subsections with basic population
+            const subsections = await SubSectionModel.find(query)
+                .sort({ order: 1, createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate({
+                    path: 'sectionItem',
+                    populate: {
+                        path: 'section'
+                    },
+                    match: activeOnly ? { isActive: true } : {}
+                })
+                .populate('section')
+                .populate('languages');
+            
+            if (subsections.length === 0) {
+                return [];
+            }
 
-        // Create complete result with subsections and their elements
-        const result = subsections.map(subsection => {
-            const subsectionData = subsection.toObject();
-            const subsectionId = subsection._id.toString();
-            subsectionData.elements = elementsBySubsection[subsectionId] || [];
-            return subsectionData;
-        });
+            // Get all subsection IDs
+            const subsectionIds = subsections.map(sub => sub._id);
 
-        return result;
-    } catch (error) {
-        if (error instanceof AppError) throw error;
-        throw AppError.database('Failed to retrieve complete subsections by section ID', error);
+            // Get all content elements for these subsections
+            const contentElements = await ContentElementModel.find({
+                parent: { $in: subsectionIds },
+                isActive: activeOnly
+            }).sort({ order: 1 });
+
+            // Get all element IDs
+            const elementIds = contentElements.map(element => element._id);
+
+            // Get all translations for these elements in a single query
+            const translations = await ContentTranslationModel.find({
+                contentElement: { $in: elementIds },
+                isActive: activeOnly
+            }).populate('language');
+
+            // Group translations by content element ID
+            const translationsByElement: Record<string, any[]> = {};
+            
+            translations.forEach(translation => {
+                const elementId = translation.contentElement.toString();
+                if (!translationsByElement[elementId]) {
+                    translationsByElement[elementId] = [];
+                }
+                translationsByElement[elementId].push(translation);
+            });
+
+            // Group content elements by subsection ID
+            const elementsBySubsection: Record<string, any[]> = {};
+            
+            contentElements.forEach(element => {
+                const subsectionId = element.parent.toString();
+                if (!elementsBySubsection[subsectionId]) {
+                    elementsBySubsection[subsectionId] = [];
+                }
+                
+                const elementData = element.toObject();
+                const elementId = element._id.toString();
+                elementData.translations = translationsByElement[elementId] || [];
+                elementsBySubsection[subsectionId].push(elementData);
+            });
+
+            // Create complete result with subsections and their elements
+            const result = subsections.map(subsection => {
+                const subsectionData = subsection.toObject();
+                const subsectionId = subsection._id.toString();
+                subsectionData.elements = elementsBySubsection[subsectionId] || [];
+                return subsectionData;
+            });
+
+            return result;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database('Failed to retrieve complete subsections by section ID', error);
+        }
     }
-}
 
     /**
      * Get main subsection for a given section
@@ -661,24 +656,203 @@ async getCompleteSubSectionsBySectionId(
             throw AppError.database('Failed to retrieve complete subsection data', error);
         }
     }
-/**
- * Get subsections by section item ID with all content elements and their translations
- * @param sectionItemId The section item ID
- * @param activeOnly Whether to return only active subsections
- * @param limit Maximum number of subsections to return
- * @param skip Number of subsections to skip
- * @returns Promise with array of complete subsections data including elements and translations
- */
+    /**
+     * Get subsections by section item ID with all content elements and their translations
+     * @param sectionItemId The section item ID
+     * @param activeOnly Whether to return only active subsections
+     * @param limit Maximum number of subsections to return
+     * @param skip Number of subsections to skip
+     * @returns Promise with array of complete subsections data including elements and translations
+     */
     async getSubSectionsBySectionItemId(
-sectionItemId: string, activeOnly = true, limit = 100, skip = 0, includeContentCount: boolean    ): Promise<any[]> {
+        sectionItemId: string, activeOnly = true, limit = 100, skip = 0, includeContentCount: boolean    ): Promise<any[]> {
+                try {
+                    if (!mongoose.Types.ObjectId.isValid(sectionItemId)) {
+                        throw AppError.validation('Invalid section item ID format');
+                    }
+
+                    // Build the query to get subsections
+                    const query: any = { 
+                        sectionItem: sectionItemId 
+                    };
+                    
+                    if (activeOnly) {
+                        query.isActive = true;
+                    }
+                    
+                    // Get subsections with basic population
+                    const subsections = await SubSectionModel.find(query)
+                        .sort({ order: 1, createdAt: -1 })
+                        .skip(skip)
+                        .limit(limit)
+                        .populate({
+                            path: 'sectionItem',
+                            populate: {
+                                path: 'section'
+                            },
+                            match: activeOnly ? { isActive: true } : {}
+                        })
+                        .populate('languages');
+                    
+                    if (subsections.length === 0) {
+                        return [];
+                    }
+
+                    // Get all subsection IDs
+                    const subsectionIds = subsections.map(sub => sub._id);
+
+                    // Get all content elements for these subsections
+                    const contentElements = await ContentElementModel.find({
+                        parent: { $in: subsectionIds },
+                        isActive: activeOnly
+                    }).sort({ order: 1 });
+
+                    // Get all element IDs
+                    const elementIds = contentElements.map(element => element._id);
+
+                    // Get all translations for these elements in a single query
+                    const translations = await ContentTranslationModel.find({
+                        contentElement: { $in: elementIds },
+                        isActive: activeOnly
+                    }).populate('language');
+
+                    // Group translations by content element ID
+                    const translationsByElement: Record<string, any[]> = {};
+                    
+                    translations.forEach(translation => {
+                        const elementId = translation.contentElement.toString();
+                        if (!translationsByElement[elementId]) {
+                            translationsByElement[elementId] = [];
+                        }
+                        translationsByElement[elementId].push(translation);
+                    });
+
+                    // Group content elements by subsection ID
+                    const elementsBySubsection: Record<string, any[]> = {};
+                    
+                    contentElements.forEach(element => {
+                        const subsectionId = element.parent.toString();
+                        if (!elementsBySubsection[subsectionId]) {
+                            elementsBySubsection[subsectionId] = [];
+                        }
+                        
+                        const elementData = element.toObject();
+                        const elementId = element._id.toString();
+                        elementData.translations = translationsByElement[elementId] || [];
+                        elementsBySubsection[subsectionId].push(elementData);
+                    });
+
+                    // Create complete result with subsections and their elements
+                    const result = subsections.map(subsection => {
+                        const subsectionData = subsection.toObject();
+                        const subsectionId = subsection._id.toString();
+                        subsectionData.elements = elementsBySubsection[subsectionId] || [];
+                        return subsectionData;
+                    });
+
+                    return result;
+                } catch (error) {
+                    if (error instanceof AppError) throw error;
+                    throw AppError.database('Failed to retrieve complete subsections by section item ID', error);
+                }
+    }
+        /**
+     * Get subsections by WebSite ID
+     * @param websiteId The WebSite ID
+     * @param activeOnly Whether to return only active subsections
+     * @param limit Maximum number of subsections to return
+     * @param skip Number of subsections to skip
+     * @param includeContentCount Whether to include content element count
+     * @returns Promise with array of subsections
+     */
+    async getSubSectionsByWebSiteId(
+        websiteId: string,
+        activeOnly = true,
+        limit = 100,
+        skip = 0,
+        includeContentCount = false
+    ): Promise<ICreateSubSection[]> {
         try {
-            if (!mongoose.Types.ObjectId.isValid(sectionItemId)) {
-                throw AppError.validation('Invalid section item ID format');
+            if (!mongoose.Types.ObjectId.isValid(websiteId)) {
+                throw AppError.validation('Invalid WebSite ID format');
+            }
+
+            // Build the query
+            const query: any = { 
+                WebSite: websiteId 
+            };
+            
+            if (activeOnly) {
+                query.isActive = true;
+            }
+            
+            const subsections = await SubSectionModel.find(query)
+                .sort({ order: 1, createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate({
+                    path: 'sectionItem',
+                    match: activeOnly ? { isActive: true } : {},
+                    options: { sort: { order: 1 } },
+                    populate: {
+                        path: 'section'
+                    }
+                })
+                .populate('section')
+                .populate('languages');
+            
+            // Include content element count if requested
+            if (includeContentCount && subsections.length > 0) {
+                const subsectionIds = subsections.map(subsection => subsection._id);
+                
+                // Get counts for each subsection
+                const contentCounts = await ContentElementModel.aggregate([
+                    { $match: { parent: { $in: subsectionIds }, isActive: activeOnly } },
+                    { $group: { _id: '$parent', count: { $sum: 1 } } }
+                ]);
+                
+                // Create a map of subsection ID to count
+                const countsMap = contentCounts.reduce((acc, item) => {
+                    acc[item._id.toString()] = item.count;
+                    return acc;
+                }, {} as { [key: string]: number });
+                
+                // Add count to each subsection
+                subsections.forEach(subsection => {
+                    const id = subsection._id.toString();
+                    (subsection as any).contentCount = countsMap[id] || 0;
+                });
+            }
+            
+            return subsections;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database('Failed to retrieve subsections by WebSite ID', error);
+        }
+    }
+
+    /**
+     * Get complete subsections by WebSite ID with all content elements and translations
+     * @param websiteId The WebSite ID
+     * @param activeOnly Whether to return only active subsections
+     * @param limit Maximum number of subsections to return
+     * @param skip Number of subsections to skip
+     * @returns Promise with array of complete subsections data including elements and translations
+     */
+    async getCompleteSubSectionsByWebSiteId(
+        websiteId: string,
+        activeOnly = true,
+        limit = 100,
+        skip = 0
+    ): Promise<any[]> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(websiteId)) {
+                throw AppError.validation('Invalid WebSite ID format');
             }
 
             // Build the query to get subsections
             const query: any = { 
-                sectionItem: sectionItemId 
+                WebSite: websiteId 
             };
             
             if (activeOnly) {
@@ -697,6 +871,7 @@ sectionItemId: string, activeOnly = true, limit = 100, skip = 0, includeContentC
                     },
                     match: activeOnly ? { isActive: true } : {}
                 })
+                .populate('section')
                 .populate('languages');
             
             if (subsections.length === 0) {
@@ -758,7 +933,38 @@ sectionItemId: string, activeOnly = true, limit = 100, skip = 0, includeContentC
             return result;
         } catch (error) {
             if (error instanceof AppError) throw error;
-            throw AppError.database('Failed to retrieve complete subsections by section item ID', error);
+            throw AppError.database('Failed to retrieve complete subsections by WebSite ID', error);
+        }
+    }
+
+    /**
+ * Get main subsection for a given WebSite
+ * @param websiteId The WebSite ID
+ * @returns Promise with the main subsection for this WebSite, or null if not found
+ */
+    async getMainSubSectionByWebSiteId(websiteId: string): Promise<ICreateSubSection | null> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(websiteId)) {
+                throw AppError.validation('Invalid WebSite ID format');
+            }
+
+            const mainSubsection = await SubSectionModel.findOne({
+                WebSite: websiteId,
+                isMain: true,
+                isActive: true
+            }).populate({
+                path: 'sectionItem',
+                populate: {
+                    path: 'section'
+                }
+            })
+            .populate('section')
+            .populate('languages')
+            console.log("mainSubsection", mainSubsection)
+            return mainSubsection;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database('Failed to retrieve main subsection for WebSite', error);
         }
     }
 }

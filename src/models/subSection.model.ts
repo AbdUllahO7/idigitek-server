@@ -18,8 +18,6 @@ const subSectionSchema = new Schema<ICreateSubSection>(
       required: true,
       trim: true,
       lowercase: true,
-      index: true,
-      unique: true,
     },
     isActive: {
       type: Boolean,
@@ -40,6 +38,11 @@ const subSectionSchema = new Schema<ICreateSubSection>(
     section: {
       type: Schema.Types.ObjectId,
       ref: 'Sections'
+    },
+    WebSite : {
+      type: Schema.Types.ObjectId,
+      ref: 'WebSite',
+      required : true 
     },
     languages: [{
       type: Schema.Types.ObjectId,

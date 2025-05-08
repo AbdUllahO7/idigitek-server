@@ -55,22 +55,44 @@ class SectionItemController {
    * Get section items by parent section ID
    * @route GET /api/section-items/section/:sectionId
    */
-  getSectionItemsBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    getSectionItemsBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+      const activeOnly = req.query.activeOnly !== 'false';
+      const limit = parseInt(req.query.limit as string) || 100;
+      const skip = parseInt(req.query.skip as string) || 0;
+      const includeSubSectionCount = req.query.includeSubSectionCount === 'true';
+      
+      const sectionItems = await sectionItemService.getSectionItemsBySectionId(
+        req.params.sectionId,
+        activeOnly,
+        limit,
+        skip,
+        includeSubSectionCount
+      );
+      
+      sendSuccess(res, sectionItems, 'Section items retrieved successfully');
+    });
+
+  /**
+   * Get section items by WebSite ID
+   * @route GET /api/section-items/website/:websiteId
+   */
+  getSectionItemsByWebSiteId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const activeOnly = req.query.activeOnly !== 'false';
     const limit = parseInt(req.query.limit as string) || 100;
     const skip = parseInt(req.query.skip as string) || 0;
     const includeSubSectionCount = req.query.includeSubSectionCount === 'true';
     
-    const sectionItems = await sectionItemService.getSectionItemsBySectionId(
-      req.params.sectionId,
-      activeOnly,
-      limit,
-      skip,
-      includeSubSectionCount
+    const sectionItems = await sectionItemService.getSectionItemsByWebSiteId(
+        req.params.websiteId,
+        activeOnly,
+        limit,
+        skip,
+        includeSubSectionCount
     );
     
     sendSuccess(res, sectionItems, 'Section items retrieved successfully');
   });
+    
   
   /**
    * Update section item by ID

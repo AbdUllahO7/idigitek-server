@@ -18,6 +18,11 @@ router.put('/order',  subSectionController.updateSubsectionsOrder);
 router.get('/slug/:slug', subSectionController.getSubSectionBySlug);
 router.get('/slug/:slug/complete', subSectionController.getCompleteSubSectionBySlug);
 
+// WebSite routes
+router.get('/website/:websiteId', subSectionController.getSubSectionsByWebSiteId);
+router.get('/website/:websiteId/complete', subSectionController.getCompleteSubSectionsByWebSiteId);
+router.get('/website/:websiteId/main', subSectionController.getMainSubSectionByWebSiteId);
+
 // Section item routes
 router.get('/sectionItem/:sectionItemId', subSectionController.getSubSectionsBySectionItemId);
 
