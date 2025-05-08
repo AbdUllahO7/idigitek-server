@@ -59,6 +59,8 @@ class UserController {
     
     // First check if the target user is an owner
     const targetUser = await userService.getUserById(userId);
+    console.log("targetUser" , targetUser)
+    console.log("req.user?.role", req.user?.role)
     if (targetUser.role === UserRole.OWNER) {
       // If target is an owner, check if current user is also an owner
       if (req.user?.role !== UserRole.OWNER) {
