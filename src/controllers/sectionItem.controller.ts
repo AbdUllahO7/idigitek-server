@@ -55,7 +55,7 @@ class SectionItemController {
    * Get section items by parent section ID
    * @route GET /api/section-items/section/:sectionId
    */
-    getSectionItemsBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  getSectionItemsBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const activeOnly = req.query.activeOnly !== 'false';
       const limit = parseInt(req.query.limit as string) || 100;
       const skip = parseInt(req.query.skip as string) || 0;
@@ -70,7 +70,7 @@ class SectionItemController {
       );
       
       sendSuccess(res, sectionItems, 'Section items retrieved successfully');
-    });
+  });
 
   /**
    * Get section items by WebSite ID

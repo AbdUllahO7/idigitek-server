@@ -1,7 +1,7 @@
-import SectionItemModel from '../models/sectionItem.model';
+import SectionItemModel from '../models/sectionItems.model';
 import mongoose from 'mongoose';
 import SectionModel from '../models/sections.model';
-import SubSectionModel from '../models/subSection.model';
+import SubSectionModel from '../models/subSections.model';
 import { IService, IServiceDocument } from '../types/sectionItem.types';
 import { AppError } from '../middleware/errorHandler.middleware';
 

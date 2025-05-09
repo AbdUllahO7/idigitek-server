@@ -23,7 +23,7 @@ class UserController {
     return sendSuccess(res, user, 'User profile retrieved successfully');
   });
 
- /**
+  /**
  * Create a new user (superAdmin and Owner only)
  */
   createUser = asyncHandler(async (req: Request, res: Response) => {
@@ -101,9 +101,6 @@ class UserController {
     return sendSuccess(res, updatedUser, 'User updated successfully');
   });
   
-
-
-
   /**
    * Update user profile
    */
@@ -131,7 +128,6 @@ class UserController {
     return sendSuccess(res, updatedUser, 'Profile updated successfully');
   });
   
-
   /**
    * Get user by ID (admin only)
    */
@@ -195,7 +191,6 @@ class UserController {
     const updatedUser = await userService.updateUserRole(userId, newRole);
     return sendSuccess(res, updatedUser, 'User role updated successfully');
   });
-
 
   /**
    * Update user status (admin only)

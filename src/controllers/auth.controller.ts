@@ -4,7 +4,7 @@ import authService from '../services/auth.service';
 import userService from '../services/user.service';
 import { AppError, asyncHandler } from '../middleware/errorHandler.middleware';
 
-/**
+  /**
  * Authentication Controller
  * Handles all authentication-related requests
  */

@@ -14,11 +14,11 @@ export class SectionController {
     this.sectionService = new SectionService();
   }
 
-   /**
+  /**
    * Upload section image
    * @route POST /api/sections/:id/image
    */
-   uploadSectionImage = asyncHandler(async (req: Request, res: Response) => {
+  uploadSectionImage = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     
     if (!id) {
@@ -46,8 +46,10 @@ export class SectionController {
    * Create a new section
    */
   createSection = asyncHandler(async (req: Request, res: Response) => {
-    const { name, description, image, isActive, order } = req.body;
-    
+    const { name, description, image, isActive, order , WebSiteId } = req.body;
+      console.log("WebSiteId" , WebSiteId)
+      console.log("name" , name)
+
     if (!name) {
       throw AppError.badRequest('name is required');
     }
@@ -57,7 +59,8 @@ export class SectionController {
       description,
       image,
       isActive,
-      order
+      order,
+      WebSiteId
     });
     
     return sendSuccess(res, section, 'Section created successfully', 201);
