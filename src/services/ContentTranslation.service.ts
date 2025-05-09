@@ -239,107 +239,107 @@ class ContentTranslationService {
    * @returns Promise with success message and count
    */
 
-    async bulkUpsertTranslations(translations: (ICreateContentTranslation & { id?: string })[]): 
-      Promise<{ success: boolean; message: string; created: number; updated: number }> {
-      try {
-        let created = 0;
-        let updated = 0;
+  async bulkUpsertTranslations(translations: (ICreateContentTranslation & { id?: string })[]): 
+    Promise<{ success: boolean; message: string; created: number; updated: number }> {
+    try {
+      let created = 0;
+      let updated = 0;
 
-        // Validate the input array
-        if (!Array.isArray(translations) || translations.length === 0) {
-          throw AppError.validation('Translations array must not be empty');
-        }
+      // Validate the input array
+      if (!Array.isArray(translations) || translations.length === 0) {
+        throw AppError.validation('Translations array must not be empty');
+      }
 
-        // Process each translation
-        for (const item of translations) {
-          try {
-            // Validate required fields
-            if (!item.contentElement || !mongoose.Types.ObjectId.isValid(item.contentElement as string)) {
-              console.error(`Invalid contentElement: ${item.contentElement}`);
-              throw AppError.validation(`Invalid contentElement ID: ${item.contentElement}`);
+      // Process each translation
+      for (const item of translations) {
+        try {
+          // Validate required fields
+          if (!item.contentElement || !mongoose.Types.ObjectId.isValid(item.contentElement as string)) {
+            console.error(`Invalid contentElement: ${item.contentElement}`);
+            throw AppError.validation(`Invalid contentElement ID: ${item.contentElement}`);
+          }
+
+          if (!item.language || !mongoose.Types.ObjectId.isValid(item.language as string)) {
+            console.error(`Invalid language: ${item.language}`);
+            throw AppError.validation(`Invalid language ID: ${item.language}`);
+          }
+
+          // Validate content element exists
+          const elementExists = await ContentElementModel.exists({ _id: item.contentElement });
+          if (!elementExists) {
+            console.error(`Content element not found: ${item.contentElement}`);
+            throw AppError.notFound(`Content element with ID ${item.contentElement} not found`);
+          }
+
+          // Validate language exists
+          const languageExists = await LanguagesModel.exists({ _id: item.language });
+          if (!languageExists) {
+            console.error(`Language not found: ${item.language}`);
+            throw AppError.notFound(`Language with ID ${item.language} not found`);
+          }
+
+          if (item.id && mongoose.Types.ObjectId.isValid(item.id)) {
+            // Update existing translation
+            const result = await ContentTranslationModel.findByIdAndUpdate(
+              item.id,
+              { $set: {
+                content: item.content,
+                isActive: item.isActive !== undefined ? item.isActive : true,
+                metadata: item.metadata
+              }},
+              { runValidators: true, new: true }
+            );
+            
+            if (!result) {
+              console.error(`Translation not found for update: ${item.id}`);
+              throw AppError.notFound(`Translation with ID ${item.id} not found for update`);
             }
+            
+            updated++;
+          } else {
+            // Check if translation already exists for this element and language
+            const existingTranslation = await ContentTranslationModel.findOne({
+              contentElement: item.contentElement,
+              language: item.language
+            });
 
-            if (!item.language || !mongoose.Types.ObjectId.isValid(item.language as string)) {
-              console.error(`Invalid language: ${item.language}`);
-              throw AppError.validation(`Invalid language ID: ${item.language}`);
-            }
-
-            // Validate content element exists
-            const elementExists = await ContentElementModel.exists({ _id: item.contentElement });
-            if (!elementExists) {
-              console.error(`Content element not found: ${item.contentElement}`);
-              throw AppError.notFound(`Content element with ID ${item.contentElement} not found`);
-            }
-
-            // Validate language exists
-            const languageExists = await LanguagesModel.exists({ _id: item.language });
-            if (!languageExists) {
-              console.error(`Language not found: ${item.language}`);
-              throw AppError.notFound(`Language with ID ${item.language} not found`);
-            }
-
-            if (item.id && mongoose.Types.ObjectId.isValid(item.id)) {
-              // Update existing translation
-              const result = await ContentTranslationModel.findByIdAndUpdate(
-                item.id,
-                { $set: {
-                  content: item.content,
-                  isActive: item.isActive !== undefined ? item.isActive : true,
-                  metadata: item.metadata
-                }},
-                { runValidators: true, new: true }
-              );
-              
-              if (!result) {
-                console.error(`Translation not found for update: ${item.id}`);
-                throw AppError.notFound(`Translation with ID ${item.id} not found for update`);
-              }
-              
+            if (existingTranslation) {
+              // Update existing
+              existingTranslation.content = item.content;
+              if (item.isActive !== undefined) existingTranslation.isActive = item.isActive;
+              if (item.metadata) existingTranslation.metadata = item.metadata;
+              await existingTranslation.save();
               updated++;
             } else {
-              // Check if translation already exists for this element and language
-              const existingTranslation = await ContentTranslationModel.findOne({
+              // Create new
+              await new ContentTranslationModel({
+                content: item.content,
                 contentElement: item.contentElement,
-                language: item.language
-              });
-
-              if (existingTranslation) {
-                // Update existing
-                existingTranslation.content = item.content;
-                if (item.isActive !== undefined) existingTranslation.isActive = item.isActive;
-                if (item.metadata) existingTranslation.metadata = item.metadata;
-                await existingTranslation.save();
-                updated++;
-              } else {
-                // Create new
-                await new ContentTranslationModel({
-                  content: item.content,
-                  contentElement: item.contentElement,
-                  language: item.language,
-                  isActive: item.isActive !== undefined ? item.isActive : true,
-                  metadata: item.metadata
-                }).save();
-                created++;
-              }
+                language: item.language,
+                isActive: item.isActive !== undefined ? item.isActive : true,
+                metadata: item.metadata
+              }).save();
+              created++;
             }
-          } catch (itemError) {
-            console.error('Error processing translation item:', itemError);
-            throw itemError; // Re-throw to be caught by the outer catch
           }
+        } catch (itemError) {
+          console.error('Error processing translation item:', itemError);
+          throw itemError; // Re-throw to be caught by the outer catch
         }
-
-        return { 
-          success: true, 
-          message: `Processed ${translations.length} translations: ${created} created, ${updated} updated`,
-          created,
-          updated
-        };
-      } catch (error) {
-        console.error('Failed to process translations batch:', error);
-        if (error instanceof AppError) throw error;
-        throw AppError.database('Failed to process translations batch', error);
       }
+
+      return { 
+        success: true, 
+        message: `Processed ${translations.length} translations: ${created} created, ${updated} updated`,
+        created,
+        updated
+      };
+    } catch (error) {
+      console.error('Failed to process translations batch:', error);
+      if (error instanceof AppError) throw error;
+      throw AppError.database('Failed to process translations batch', error);
     }
+  }
 }
 
 export default new ContentTranslationService();

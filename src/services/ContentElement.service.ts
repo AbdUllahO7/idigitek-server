@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import SubSectionModel from '../models/subSection.model';
+import SubSectionModel from '../models/subSections.model';
 import { IContentElement, ICreateContentElement, IUpdateContentElement } from '../types/ContentElement.type';
 import ContentElementModel from '../models/ContentElement.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';

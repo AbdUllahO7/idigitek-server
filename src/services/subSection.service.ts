@@ -1,13 +1,13 @@
 import ContentElementModel from '../models/ContentElement.model';
-import SubSectionModel from '../models/subSection.model';
+import SubSectionModel from '../models/subSections.model';
 import { ICreateSubSection, IUpdateSubSection } from '../types/sub.section.types';
 import mongoose from 'mongoose';
-import SectionItemModel from '../models/sectionItem.model';
+import SectionItemModel from '../models/sectionItems.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
 import { AppError } from '../middleware/errorHandler.middleware';
 
 class SubSectionService {
-   /**
+    /**
      * Create a new subsection
      * @param subsectionData The subsection data to create
      * @returns Promise with the created subsection
@@ -67,13 +67,13 @@ class SubSectionService {
         }
     }
 
-     /**
+    /**
      * Helper function to handle main subsection logic
      * This unsets isMain flag on other subsections for the same section
      * @param currentSubsectionId ID of the current subsection (null for new subsections)
      * @param sectionId ID of the section
      */
-     private async handleMainSubSection(currentSubsectionId: string | null, sectionId: mongoose.Types.ObjectId): Promise<void> {
+    private async handleMainSubSection(currentSubsectionId: string | null, sectionId: mongoose.Types.ObjectId): Promise<void> {
         try {
             // Create a query to find other main subsections for this section
             const query: any = { 
@@ -153,7 +153,7 @@ class SubSectionService {
     }
     
     
-  /**
+    /**
      * Get subsection by ID
      * @param id The subsection ID
      * @param populateSectionItem Whether to populate section item

@@ -38,7 +38,6 @@ export class WebSiteController {
  */
   async uploadWebSiteLogo(req: Request, res: Response, next: NextFunction): Promise<void> {
     const file = req.file  as File; 
-
     try {
       const { id } = req?.params;
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -48,7 +47,6 @@ export class WebSiteController {
         return next(new AppError('No image file provided', 400));
       }
       
-  
       const updatedWebsite = await webSiteService.uploadWebSiteLogo(id, file);
 
       res.status(200).json({

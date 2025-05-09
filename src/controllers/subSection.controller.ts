@@ -57,79 +57,79 @@ class SubSectionController {
    * Get complete subsections by section ID with all content elements and translations
    * @route GET /api/subsections/section/:sectionId/complete
    */
-    getCompleteSubSectionsBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-      const activeOnly = req.query.activeOnly !== 'false';
-      const limit = parseInt(req.query.limit as string) || 100;
-      const skip = parseInt(req.query.skip as string) || 0;
-      
-      const subsections = await subSectionService.getCompleteSubSectionsBySectionId(
-        req.params.sectionId,
-        activeOnly,
-        limit,
-        skip
-      );
-      
-      sendSuccess(res, subsections, 'Complete subsections retrieved successfully');
-    });
+  getCompleteSubSectionsBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const activeOnly = req.query.activeOnly !== 'false';
+    const limit = parseInt(req.query.limit as string) || 100;
+    const skip = parseInt(req.query.skip as string) || 0;
+    
+    const subsections = await subSectionService.getCompleteSubSectionsBySectionId(
+      req.params.sectionId,
+      activeOnly,
+      limit,
+      skip
+    );
+    
+    sendSuccess(res, subsections, 'Complete subsections retrieved successfully');
+  });
 
   /**
    * Get main subsection for a section
    * @route GET /api/subsections/section/:sectionId/main
    */
-    getMainSubSectionBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-      const mainSubsection = await subSectionService.getMainSubSectionBySectionId(
-        req.params.sectionId
-      );
-      
-      if (!mainSubsection) {
-        sendSuccess(res, null, 'No main subsection found for this section');
-        return;
-      }
-      
-      sendSuccess(res, mainSubsection, 'Main subsection retrieved successfully');
-    });
+  getMainSubSectionBySectionId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const mainSubsection = await subSectionService.getMainSubSectionBySectionId(
+      req.params.sectionId
+    );
+    
+    if (!mainSubsection) {
+      sendSuccess(res, null, 'No main subsection found for this section');
+      return;
+    }
+    
+    sendSuccess(res, mainSubsection, 'Main subsection retrieved successfully');
+  });
   
   
   /**
    * Get subsection by slug
    * @route GET /api/subsections/slug/:slug
    */
-    getSubSectionBySlug = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-      const populateSectionItem = req.query.populate !== 'false';
-      const includeContentElements = req.query.includeContent === 'true';
-      
-      const subsection = await subSectionService.getSubSectionBySlug(
-        req.params.slug, 
-        populateSectionItem,
-        includeContentElements
-      );
-      
-      sendSuccess(res, subsection, 'Subsection retrieved successfully');
-    });
+  getSubSectionBySlug = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const populateSectionItem = req.query.populate !== 'false';
+    const includeContentElements = req.query.includeContent === 'true';
+    
+    const subsection = await subSectionService.getSubSectionBySlug(
+      req.params.slug, 
+      populateSectionItem,
+      includeContentElements
+    );
+    
+    sendSuccess(res, subsection, 'Subsection retrieved successfully');
+  });
 
   
   /**
    * Update subsection by ID
    * @route PUT /api/subsections/:id
    */
-    updateSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        throw AppError.validation('Invalid subsection ID format');
-      }
-      
-      const subsection = await subSectionService.updateSubSectionById(
-        req.params.id, 
-        req.body
-      );
-      
-      sendSuccess(res, subsection, 'Subsection updated successfully');
-    });
+  updateSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw AppError.validation('Invalid subsection ID format');
+    }
+    
+    const subsection = await subSectionService.updateSubSectionById(
+      req.params.id, 
+      req.body
+    );
+    
+    sendSuccess(res, subsection, 'Subsection updated successfully');
+  });
   
-    /**
+  /**
    * Delete subsection by ID
    * @route DELETE /api/subsections/:id
    */
-    deleteSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  deleteSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
       if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         throw AppError.validation('Invalid subsection ID format');
       }
@@ -138,7 +138,7 @@ class SubSectionController {
       const result = await subSectionService.deleteSubSectionById(req.params.id, hardDelete);
       
       sendSuccess(res, result, result.message);
-    });
+  });
   
   /**
    * Update order of multiple subsections
@@ -221,22 +221,22 @@ class SubSectionController {
  * Get subsections by WebSite ID
  * @route GET /api/subsections/website/:websiteId
  */
-getSubSectionsByWebSiteId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const activeOnly = req.query.activeOnly !== 'false';
-  const limit = parseInt(req.query.limit as string) || 100;
-  const skip = parseInt(req.query.skip as string) || 0;
-  const includeContentCount = req.query.includeContentCount === 'true';
-  
-  const subsections = await subSectionService.getSubSectionsByWebSiteId(
-    req.params.websiteId,
-    activeOnly,
-    limit,
-    skip,
-    includeContentCount
-  );
-  
-  sendSuccess(res, subsections, 'Subsections retrieved successfully');
-});
+  getSubSectionsByWebSiteId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const activeOnly = req.query.activeOnly !== 'false';
+    const limit = parseInt(req.query.limit as string) || 100;
+    const skip = parseInt(req.query.skip as string) || 0;
+    const includeContentCount = req.query.includeContentCount === 'true';
+    
+    const subsections = await subSectionService.getSubSectionsByWebSiteId(
+      req.params.websiteId,
+      activeOnly,
+      limit,
+      skip,
+      includeContentCount
+    );
+    
+    sendSuccess(res, subsections, 'Subsections retrieved successfully');
+  });
 
   /**
    * Get complete subsections by WebSite ID with all content elements and translations
@@ -260,18 +260,18 @@ getSubSectionsByWebSiteId = asyncHandler(async (req: Request, res: Response): Pr
  * Get main subsection for a WebSite
  * @route GET /api/subsections/website/:websiteId/main
  */
-getMainSubSectionByWebSiteId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const mainSubsection = await subSectionService.getMainSubSectionByWebSiteId(
-      req.params.websiteId
-  );
-  
-  if (!mainSubsection) {
-      sendSuccess(res, null, 'No main subsection found for this WebSite');
-      return;
-  }
-  
-  sendSuccess(res, mainSubsection, 'Main subsection retrieved successfully');
-});
+  getMainSubSectionByWebSiteId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const mainSubsection = await subSectionService.getMainSubSectionByWebSiteId(
+        req.params.websiteId
+    );
+    
+    if (!mainSubsection) {
+        sendSuccess(res, null, 'No main subsection found for this WebSite');
+        return;
+    }
+    
+    sendSuccess(res, mainSubsection, 'Main subsection retrieved successfully');
+  });
 }
 
 export default new SubSectionController();

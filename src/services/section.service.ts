@@ -1,18 +1,19 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import ContentElementModel from '../models/ContentElement.model';
 import ContentTranslationModel from '../models/ContentTranslation.model';
 import SectionModel from '../models/sections.model';
-import SubSectionModel from '../models/subSection.model';
-import SectionItemModel from '../models/sectionItem.model';
+import SubSectionModel from '../models/subSections.model';
+import SectionItemModel from '../models/sectionItems.model';
 
 export class SectionService {
   // Create a new section
   async createSection(sectionData: {
-    name: string; // Changed from 'name' to 'name'
+    name: string; 
     description?: string;
     image?: string;
     isActive?: boolean;
     order?: number;
+    WebSiteId : Schema.Types.ObjectId,
   }) {
     try {
       // Ensure name is not null, undefined, or empty string
@@ -64,7 +65,6 @@ export class SectionService {
     }
   }
 
-  // Update section
   // Update section
   async updateSection(id: string, updateData: any) {
     try {
@@ -152,10 +152,9 @@ export class SectionService {
   }
 
   // Delete section
- // Delete section
- async deleteSection(id: string) {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  async deleteSection(id: string) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
   
   try {
     // Get the section with its image
@@ -299,13 +298,13 @@ export class SectionService {
     }
   }
 
-   /**
+    /**
    * Get section by ID with all related data (section items and subsections)
    * @param id Section ID
    * @param includeInactive Whether to include inactive items
    * @param languageId Optional language ID for translations
    */
-   async getSectionWithCompleteData(id: string, includeInactive: boolean = false, languageId?: string) {
+  async getSectionWithCompleteData(id: string, includeInactive: boolean = false, languageId?: string) {
     try {
       // 1. Fetch the section
       const section = await SectionModel.findById(id);
