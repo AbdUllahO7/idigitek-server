@@ -11,11 +11,13 @@ import {
   updateUserStatusValidator 
 } from '../validations/user.validation';
 import userController from '../controllers/user.controller';
+import { UserRole } from 'src/types/user.types';
 
 const router = express.Router();
 
 // IMPORTANT: Order matters for route definitions
 // More specific routes should come before general routes with params
+router.get('/owners', authenticate, userController.getOwnerUsers);
 
 /**
  * @route   GET /api/v1/users/me
@@ -130,5 +132,6 @@ router.delete(
   validate(getUserByIdValidator),
   userController.deleteUser
 );
+
 
 export default router;

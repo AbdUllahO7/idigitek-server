@@ -14,6 +14,8 @@ class UserController {
      * Get current user profile
      */
   getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+
+    console.log('req.user?.id' , req.user?.id)
     if (!req.user?.id) {
       throw AppError.badRequest('User ID is required');
     }
@@ -27,29 +29,27 @@ class UserController {
  * Create a new user (superAdmin and Owner only)
  */
   createUser = asyncHandler(async (req: Request, res: Response) => {
-    const userData = {
-      email: req.body.email,
-      password: req.body.password,
-      firstName: req.body.firstName,
-      lastName: req.body.lastName,
-      role: req.body.role as UserRole | undefined,
-      status: req.body.status as UserStatus | undefined,
-    };
-    
-    // Check if trying to create a superAdmin
-    if (userData.role === UserRole.OWNER) {
-      // Check if a superAdmin already exists
-      const existingSuperAdmin = await userService.checkSuperOwnerExists();
-      if (existingSuperAdmin) {
-        throw AppError.validation('A SuperAdmin user already exists in the system');
+      const userData = {
+        email: req.body.email,
+        password: req.body.password,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        role: req.body.role as UserRole | undefined,
+        status: req.body.status as UserStatus | undefined,
+      };
+      
+      // Check if trying to create an owner, but allow idigitekAdmin to bypass this check
+      if (userData.role === UserRole.OWNER && req.user?.role !== UserRole.IDIGITEKADMIN) {
+        // Check if an owner already exists
+        const existingSuperAdmin = await userService.checkSuperOwnerExists();
+        if (existingSuperAdmin) {
+          throw AppError.validation('A Owner user already exists in the system');
+        }
       }
-    }
-    
-    const newUser = await userService.createUser(userData);
-    return sendSuccess(res, newUser, 'User created successfully', 201);
+      
+      const newUser = await userService.createUser(userData);
+      return sendSuccess(res, newUser, 'User created successfully', 201);
   });
-
-
 
   /**
    * Update any user (OWNER AND SUPER ADMIN )
@@ -219,27 +219,38 @@ class UserController {
    * Delete user (admin only)
    */
   deleteUser = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.params.id;
-    
-    // First check if the target user is an owner
-    const targetUser = await userService.getUserById(userId);
-    if (targetUser.role === UserRole.OWNER) {
-      throw AppError.validation('Owner accounts cannot be deleted');
-    }
-    
-    // Check if this is the user trying to delete themselves
-    if (req.user?.id === userId) {
-      throw AppError.badRequest('You cannot delete your own account');
-    }
-    
-    // Check for last user before deleting
-    const userCount = await userService.getUserCount();
-    if (userCount <= 1) {
-      throw AppError.badRequest('Cannot delete the last user in the system');
-    }
-    
-    const result = await userService.deleteUser(userId);
-    return sendSuccess(res, result, 'User deleted successfully');
+      const userId = req.params.id;
+      
+      // First check if the target user is an owner
+      const targetUser = await userService.getUserById(userId);
+      
+      // Allow idigitekAdmin to delete any user including owners
+      if (targetUser.role === UserRole.OWNER && req.user?.role !== UserRole.IDIGITEKADMIN) {
+        throw AppError.validation('Owner accounts cannot be deleted except by idigitekAdmin');
+      }
+      
+      // Check if this is the user trying to delete themselves
+      if (req.user?.id === userId) {
+        throw AppError.badRequest('You cannot delete your own account');
+      }
+      
+      // Check for last user before deleting
+      const userCount = await userService.getUserCount();
+      if (userCount <= 1) {
+        throw AppError.badRequest('Cannot delete the last user in the system');
+      }
+      
+      const result = await userService.deleteUser(userId);
+      return sendSuccess(res, result, 'User deleted successfully');
+  });
+
+  /**
+   * Get all users with Owner role
+   */
+  getOwnerUsers = asyncHandler(async (req: Request, res: Response) => {
+    const owners = await userService.getOwnerUsers();
+    console.log("owners", owners)
+    return sendSuccess(res, owners, 'Owner users retrieved successfully');
   });
   
 }

@@ -4,7 +4,8 @@ export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
   SUPER_ADMIN = "superAdmin",
-  OWNER = "owner"
+  OWNER = "owner",
+  IDIGITEKADMIN = "idigitekAdmin"
 }
 
 export enum UserStatus {
