@@ -3,9 +3,6 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { IUser, UserRole, UserStatus } from '../types/user.types';
 import { env } from '../config/env';
-import SectionModel from './sections.model';
-import UserSectionModel from './UserSectionModel';
-
 const jwt = require('jsonwebtoken');
 
 const userSchema = new Schema<IUser>(
@@ -175,97 +172,6 @@ userSchema.methods.generatePasswordResetToken = function (): string {
 
 // Create a compound index on email and status
 userSchema.index({ email: 1, status: 1 });
-
-// Get active sections for a user
-userSchema.methods.getActiveSections = async function () {
-  const userSections = await UserSectionModel.find({ 
-    userId: this._id,
-    status: true
-  }).populate('sectionId');
-  
-  return userSections.map(userSection => userSection.sectionId);
-};
-
-// Activate a section for a user
-userSchema.methods.activateSection = async function (sectionId: Schema.Types.ObjectId) {
-  try {
-    // First check if the section exists
-    const section = await SectionModel.findById(sectionId);
-    if (!section) {
-      throw new Error('Section not found');
-    }
-    
-    // Check if the relationship already exists
-    const existingRelation = await UserSectionModel.findOne({
-      userId: this._id,
-      sectionId
-    });
-    
-    if (existingRelation) {
-      // If relationship exists but is inactive, update it
-      if (!existingRelation.status) {
-        existingRelation.status = true;
-        await existingRelation.save();
-        return existingRelation;
-      }
-      // Relationship already exists and is active
-      return existingRelation;
-    }
-    
-    // Create new relationship
-    const userSection = new UserSectionModel({
-      userId: this._id,
-      sectionId,
-      status: true
-    });
-    
-    await userSection.save();
-    return userSection;
-  } catch (error) {
-    throw error;
-  }
-};
-
-// Deactivate a section for a user
-userSchema.methods.deactivateSection = async function (sectionId: Schema.Types.ObjectId) {
-  try {
-    // Find the relationship
-    const userSection = await UserSectionModel.findOne({
-      userId: this._id,
-      sectionId
-    });
-    
-    if (!userSection) {
-      throw new Error('User does not have this section activated');
-    }
-    
-    // Update status to inactive
-    userSection.status = false;
-    await userSection.save();
-    
-    return userSection;
-  } catch (error) {
-    throw error;
-  }
-};
-
-// Alternative: completely remove the relationship instead of setting status to false
-userSchema.methods.removeSection = async function (sectionId: Schema.Types.ObjectId) {
-  try {
-    const result = await UserSectionModel.findOneAndDelete({
-      userId: this._id,
-      sectionId
-    });
-    
-    if (!result) {
-      throw new Error('User does not have this section activated');
-    }
-    
-    return { message: 'Section successfully removed from user' };
-  } catch (error) {
-    throw error;
-  }
-};
 
 const UserModel = mongoose.model<IUser>('User', userSchema);
 

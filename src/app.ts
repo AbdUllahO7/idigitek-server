@@ -20,7 +20,6 @@ import contentElementRoutes from './routes/contentElement.routes';
 import contentTranslationRoutes from './routes/contentTranslation.routes';
 import sectionsItemsRoutes from './routes/sectionItem.routes';
 import webSiteRoutes from './routes/webSite.routes'
-import userSectionRoutes from './routes/useSection.routes'
 
 
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.middleware';
@@ -87,7 +86,6 @@ app.use(`/api/${apiVersion}/content-elements`, contentElementRoutes);
 app.use(`/api/${apiVersion}/translations`, contentTranslationRoutes);
 app.use(`/api/${apiVersion}/section-items`, sectionsItemsRoutes);
 app.use(`/api/${apiVersion}/websites`, webSiteRoutes);
-app.use(`/api/user-sections/${apiVersion}`, userSectionRoutes);
 
 
 // Health check route
