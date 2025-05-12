@@ -12,7 +12,6 @@ class UserService {
     return await UserModel.countDocuments();
   };
 
-  
   /**
    * Create a new user (admin only)
    */
@@ -199,9 +198,9 @@ class UserService {
   };
 
 
-/**
- * Update user profile (for the current user)
- */
+  /**
+   * Update user profile (for the current user)
+  */
   updateProfile = async (
     userId: string,
     updateData: {
@@ -269,9 +268,9 @@ class UserService {
       updatedAt: user.updatedAt,
     };
   };
-  /**
-   * Get all users with pagination and filtering (admin only)
-   */
+    /**
+     * Get all users with pagination and filtering (admin only)
+    */
   getUsers = async (options: {
     page?: number;
     limit?: number;
@@ -355,7 +354,7 @@ class UserService {
 
   /**
    * Update user role (admin only)
-   */
+  */
   updateUserRole = async (userId: string, role: UserRole): Promise<IUserWithoutPassword> => {
     // Validate ID format
     if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -464,6 +463,31 @@ class UserService {
       const count = await UserModel.countDocuments({  role : UserRole.OWNER });
       return count > 0;
     };
+    // Add this to UserService
+/**
+ * Get all users with Owner role
+ */
+  getOwnerUsers = async (): Promise<IUserWithoutPassword[]> => {
+    try {
+      const owners = await UserModel.find({ role: UserRole.OWNER })
+        .select('-password -refreshToken -emailVerificationToken -passwordResetToken');
+      console.log("owners" , owners)
+      // Format users
+      return owners.map(user => ({
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        status: user.status,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      }));
+    } catch (error) {
+      throw AppError.database('Failed to retrieve owner users', { error: error.message });
+    }
+  };
 }
 
 

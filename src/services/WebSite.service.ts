@@ -175,11 +175,14 @@ export class WebSiteService {
      */
     async addUserToWebSite(webSiteId: string, userIdToAdd: string, role: string, requestingUserId: string): Promise<any> {
         // Verify the requesting user has permission to add users to this website
+        console.log("role", role)
         const requestingWebsiteUser = await WebSiteUserModel.findOne({ 
             webSiteId, 
             userId: requestingUserId,
-            role: 'owner'
+            role: { $in: ['owner', 'superAdmin'] }  // Modified to check for either role
         });
+
+        console.log("requestingWebsiteUser" , requestingWebsiteUser)
         
         if (!requestingWebsiteUser) {
             throw new AppError('You do not have permission to add users to this website', 403);

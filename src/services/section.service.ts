@@ -4,8 +4,13 @@ import ContentTranslationModel from '../models/ContentTranslation.model';
 import SectionModel from '../models/sections.model';
 import SubSectionModel from '../models/subSections.model';
 import SectionItemModel from '../models/sectionItems.model';
+import { UserSectionService } from './UserSection.service';
 
 export class SectionService {
+
+  private userSectionService: UserSectionService;
+
+
   // Create a new section
   async createSection(sectionData: {
     name: string; 
@@ -133,170 +138,175 @@ export class SectionService {
   }
 
   // Update section status
-  async updateSectionStatus(id: string, isActive: boolean) {
-    try {
-      const section = await SectionModel.findByIdAndUpdate(
-        id,
-        { isActive },
-        { new: true, runValidators: true }
-      );
-      
-      if (!section) {
-        throw new Error('Section not found');
-      }
-      
-      return section;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // Delete section
-  async deleteSection(id: string) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-  
+async updateSectionStatus(id: string, isActive: boolean) {
   try {
-    // Get the section with its image
-    const section = await SectionModel.findById(id).session(session);
+    const section = await SectionModel.findByIdAndUpdate(
+      id,
+      { isActive },
+      { new: true, runValidators: true }
+    );
+    
     if (!section) {
       throw new Error('Section not found');
     }
     
-    // Store the image URL for later deletion if it exists
-    const imageUrl = section.image;
-    
-    // Delete the section
-    await SectionModel.findByIdAndDelete(id).session(session);
-    
-    // Find all subsections belonging to this section
-    const subsections = await SubSectionModel.find({ sectionId: id }).session(session);
-    const subsectionIds = subsections.map(subsection => subsection._id);
-    
-    // Delete all subsections
-    await SubSectionModel.deleteMany({ sectionId: id }).session(session);
-    
-    // Find all content elements for this section and its subsections
-    const elementIds = await ContentElementModel.find({
-      $or: [
-        { parentType: 'section', parentId: id },
-        { parentType: 'subsection', parentId: { $in: subsectionIds } }
-      ]
-    }).distinct('_id').session(session);
-    
-    // Delete all content elements
-    await ContentElementModel.deleteMany({
-      $or: [
-        { parentType: 'section', parentId: id },
-        { parentType: 'subsection', parentId: { $in: subsectionIds } }
-      ]
-    }).session(session);
-    
-    // Delete all content translations
-    await ContentTranslationModel.deleteMany({
-      elementId: { $in: elementIds }
-    }).session(session);
-    
-    await session.commitTransaction();
-    
-    // Delete the image from Cloudinary if it exists (after transaction is committed)
-    if (imageUrl) {
-      try {
-        const cloudinaryService = require('../services/cloudinary.service').default;
-        const publicId = cloudinaryService.getPublicIdFromUrl(imageUrl);
-        if (publicId) {
-          // Delete in the background, don't wait for it
-          cloudinaryService.deleteImage(publicId).catch(err => {
-            console.error('Failed to delete section image:', err);
-          });
-        }
-      } catch (error) {
-        console.error('Error importing cloudinary service:', error);
-      }
+    // If section is being deactivated, deactivate it for all users
+    if (!isActive) {
+      await this.userSectionService.handleSectionGlobalDeactivation(id);
     }
     
-    return { message: 'Section deleted successfully' };
+    return section;
   } catch (error) {
-    await session.abortTransaction();
     throw error;
-  } finally {
-    session.endSession();
   }
 }
 
-  // Get section with all related content (subsections and content elements)
-  async getSectionWithContent(id: string, languageId: string) {
+    // Delete section
+    async deleteSection(id: string) {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+    
     try {
-      const section = await SectionModel.findById(id);
+      // Get the section with its image
+      const section = await SectionModel.findById(id).session(session);
       if (!section) {
         throw new Error('Section not found');
       }
       
-      // Get all subsections for this section
-      const subsections = await SubSectionModel.find({ sectionId: id }).sort({ order: 1 });
+      // Store the image URL for later deletion if it exists
+      const imageUrl = section.image;
       
-      // Get all content elements for the section
-      const sectionElements = await ContentElementModel.find({
-        parentType: 'section',
-        parentId: id
-      }).sort({ order: 1 });
+      // Delete the section
+      await SectionModel.findByIdAndDelete(id).session(session);
       
-      // Get all content element IDs for section and subsections
-      const sectionElementIds = sectionElements.map(el => el._id);
-      const subsectionIds = subsections.map(sub => sub._id);
+      // Find all subsections belonging to this section
+      const subsections = await SubSectionModel.find({ sectionId: id }).session(session);
+      const subsectionIds = subsections.map(subsection => subsection._id);
       
-      // Get all content elements for the subsections
-      const subsectionElements = await ContentElementModel.find({
-        parentType: 'subsection',
-        parentId: { $in: subsectionIds }
-      }).sort({ order: 1 });
+      // Delete all subsections
+      await SubSectionModel.deleteMany({ sectionId: id }).session(session);
       
-      const allElementIds = [...sectionElementIds, ...subsectionElements.map(el => el._id)];
+      // Find all content elements for this section and its subsections
+      const elementIds = await ContentElementModel.find({
+        $or: [
+          { parentType: 'section', parentId: id },
+          { parentType: 'subsection', parentId: { $in: subsectionIds } }
+        ]
+      }).distinct('_id').session(session);
       
-      // Get all translations for the content elements
-      const translations = await ContentTranslationModel.find({
-        elementId: { $in: allElementIds },
-        languageId
-      });
+      // Delete all content elements
+      await ContentElementModel.deleteMany({
+        $or: [
+          { parentType: 'section', parentId: id },
+          { parentType: 'subsection', parentId: { $in: subsectionIds } }
+        ]
+      }).session(session);
       
-      // Map translations to their elements
-      const translationsMap = translations.reduce((map, trans) => {
-        map[trans.id.toString()] = trans.content;
-        return map;
-      }, {} as Record<string, any>);
+      // Delete all content translations
+      await ContentTranslationModel.deleteMany({
+        elementId: { $in: elementIds }
+      }).session(session);
       
-      // Add translations to section elements
-      const sectionElementsWithTranslations = sectionElements.map(element => ({
-        ...element.toObject(),
-        value: translationsMap[element._id.toString()] || null
-      }));
+      await session.commitTransaction();
       
-      // Process subsections with their elements and translations
-      const subsectionsWithContent = await Promise.all(subsections.map(async (subsection) => {
-        const subsectionElementsForThisSubsection = subsectionElements.filter(
-          el => el.parent.toString() === subsection._id.toString()
-        );
+      // Delete the image from Cloudinary if it exists (after transaction is committed)
+      if (imageUrl) {
+        try {
+          const cloudinaryService = require('../services/cloudinary.service').default;
+          const publicId = cloudinaryService.getPublicIdFromUrl(imageUrl);
+          if (publicId) {
+            // Delete in the background, don't wait for it
+            cloudinaryService.deleteImage(publicId).catch(err => {
+              console.error('Failed to delete section image:', err);
+            });
+          }
+        } catch (error) {
+          console.error('Error importing cloudinary service:', error);
+        }
+      }
+      
+      return { message: 'Section deleted successfully' };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+    // Get section with all related content (subsections and content elements)
+    async getSectionWithContent(id: string, languageId: string) {
+      try {
+        const section = await SectionModel.findById(id);
+        if (!section) {
+          throw new Error('Section not found');
+        }
         
-        const elementsWithTranslations = subsectionElementsForThisSubsection.map(element => ({
+        // Get all subsections for this section
+        const subsections = await SubSectionModel.find({ sectionId: id }).sort({ order: 1 });
+        
+        // Get all content elements for the section
+        const sectionElements = await ContentElementModel.find({
+          parentType: 'section',
+          parentId: id
+        }).sort({ order: 1 });
+        
+        // Get all content element IDs for section and subsections
+        const sectionElementIds = sectionElements.map(el => el._id);
+        const subsectionIds = subsections.map(sub => sub._id);
+        
+        // Get all content elements for the subsections
+        const subsectionElements = await ContentElementModel.find({
+          parentType: 'subsection',
+          parentId: { $in: subsectionIds }
+        }).sort({ order: 1 });
+        
+        const allElementIds = [...sectionElementIds, ...subsectionElements.map(el => el._id)];
+        
+        // Get all translations for the content elements
+        const translations = await ContentTranslationModel.find({
+          elementId: { $in: allElementIds },
+          languageId
+        });
+        
+        // Map translations to their elements
+        const translationsMap = translations.reduce((map, trans) => {
+          map[trans.id.toString()] = trans.content;
+          return map;
+        }, {} as Record<string, any>);
+        
+        // Add translations to section elements
+        const sectionElementsWithTranslations = sectionElements.map(element => ({
           ...element.toObject(),
           value: translationsMap[element._id.toString()] || null
         }));
         
+        // Process subsections with their elements and translations
+        const subsectionsWithContent = await Promise.all(subsections.map(async (subsection) => {
+          const subsectionElementsForThisSubsection = subsectionElements.filter(
+            el => el.parent.toString() === subsection._id.toString()
+          );
+          
+          const elementsWithTranslations = subsectionElementsForThisSubsection.map(element => ({
+            ...element.toObject(),
+            value: translationsMap[element._id.toString()] || null
+          }));
+          
+          return {
+            ...subsection.toObject(),
+            elements: elementsWithTranslations
+          };
+        }));
+        
         return {
-          ...subsection.toObject(),
-          elements: elementsWithTranslations
+          ...section.toObject(),
+          elements: sectionElementsWithTranslations,
+          subsections: subsectionsWithContent
         };
-      }));
-      
-      return {
-        ...section.toObject(),
-        elements: sectionElementsWithTranslations,
-        subsections: subsectionsWithContent
-      };
-    } catch (error) {
-      throw error;
+      } catch (error) {
+        throw error;
+      }
     }
-  }
 
     /**
    * Get section by ID with all related data (section items and subsections)
