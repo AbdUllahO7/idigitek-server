@@ -24,7 +24,7 @@ const webSiteUserSchema = new Schema<IWebSiteUser>(
       type: String,
       required: true,
       default: 'editor',
-      enum: ['owner' , 'superAdmin' , 'user' , 'Admin']
+      enum: ['owner' , 'superAdmin' , 'user' , 'admin']
     }
   },
   {

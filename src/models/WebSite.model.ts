@@ -1,7 +1,6 @@
-// Update ContentElementModel.ts
+// WebSiteModel.ts
 import mongoose, { Schema } from 'mongoose';
 import { WebSiteProps } from 'src/types/WebSite.type';
-
 
 const WebSiteSchema = new Schema<WebSiteProps>(
     {
@@ -24,8 +23,16 @@ const WebSiteSchema = new Schema<WebSiteProps>(
     },
     {   
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
     }
 );
+
+WebSiteSchema.virtual('languages', {
+    ref: 'Languages',
+    localField: '_id',
+    foreignField: 'website'
+});
 
 const WebSiteModel = mongoose.model<WebSiteProps>('WebSite', WebSiteSchema);
 

@@ -574,43 +574,43 @@ export class SectionService {
  * Check if a section with the given name already exists for a website
  * Useful for debugging duplicate section name issues
  */
-async checkExistingSections(name: string, websiteId: Schema.Types.ObjectId | string) {
-  try {
-    console.log(`Checking for existing sections with name "${name}" for website "${websiteId}"`);
-    
-    // Find ALL sections with this name (across all websites)
-    const allSectionsWithName = await SectionModel.find({ name });
-    console.log(`Found ${allSectionsWithName.length} section(s) with name "${name}" across all websites:`);
-    
-    allSectionsWithName.forEach(section => {
-      console.log(`- Section ID: ${section._id}, Website ID: ${section.WebSiteId}, Name: ${section.name}`);
-    });
-    
-    // Find sections with this name for this specific website
-    const sectionsForWebsite = await SectionModel.find({ 
-      name, 
-      WebSiteId: websiteId 
-    });
-    
-    console.log(`Found ${sectionsForWebsite.length} section(s) with name "${name}" for website "${websiteId}"`);
-    sectionsForWebsite.forEach(section => {
-      console.log(`- Section ID: ${section._id}, Name: ${section.name}`);
-    });
-    
-    // Check if there are any indexes on the collection
-    const indexes = await SectionModel.collection.indexes();
-    console.log('Current indexes on Sections collection:', JSON.stringify(indexes, null, 2));
-    
-    return { 
-      allSectionsWithName, 
-      sectionsForWebsite,
-      indexes 
-    };
-  } catch (error) {
-    console.error('Error checking existing sections:', error);
-    throw error;
+  async checkExistingSections(name: string, websiteId: Schema.Types.ObjectId | string) {
+    try {
+      console.log(`Checking for existing sections with name "${name}" for website "${websiteId}"`);
+      
+      // Find ALL sections with this name (across all websites)
+      const allSectionsWithName = await SectionModel.find({ name });
+      console.log(`Found ${allSectionsWithName.length} section(s) with name "${name}" across all websites:`);
+      
+      allSectionsWithName.forEach(section => {
+        console.log(`- Section ID: ${section._id}, Website ID: ${section.WebSiteId}, Name: ${section.name}`);
+      });
+      
+      // Find sections with this name for this specific website
+      const sectionsForWebsite = await SectionModel.find({ 
+        name, 
+        WebSiteId: websiteId 
+      });
+      
+      console.log(`Found ${sectionsForWebsite.length} section(s) with name "${name}" for website "${websiteId}"`);
+      sectionsForWebsite.forEach(section => {
+        console.log(`- Section ID: ${section._id}, Name: ${section.name}`);
+      });
+      
+      // Check if there are any indexes on the collection
+      const indexes = await SectionModel.collection.indexes();
+      console.log('Current indexes on Sections collection:', JSON.stringify(indexes, null, 2));
+      
+      return { 
+        allSectionsWithName, 
+        sectionsForWebsite,
+        indexes 
+      };
+    } catch (error) {
+      console.error('Error checking existing sections:', error);
+      throw error;
+    }
   }
-}
 }
 
 

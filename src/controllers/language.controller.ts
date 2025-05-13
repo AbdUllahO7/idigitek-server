@@ -8,16 +8,22 @@ const languageService = new LanguageService();
 export class LanguageController {
   // Create a new language
   createLanguage = asyncHandler(async (req: Request, res: Response) => {
-    const { language, languageID, isActive } = req.body;
+    const { language, languageID, isActive, websiteId, subSections } = req.body;
     
     if (!language || !languageID) {
       throw AppError.badRequest('Language name and language ID are required');
     }
     
+    if (!websiteId) {
+      throw AppError.badRequest('Website ID is required');
+    }
+    
     const newLanguage = await languageService.createLanguage({
       language,
       languageID,
-      isActive
+      isActive,
+      websiteId,
+      subSections
     });
     
     sendSuccess(res, newLanguage, 'Language created successfully', 201);
@@ -25,16 +31,29 @@ export class LanguageController {
 
   // Get all languages
   getAllLanguages = asyncHandler(async (req: Request, res: Response) => {
-    const { isActive } = req.query;
+    const { isActive, websiteId } = req.query;
     const query: any = {};
     
     if (isActive !== undefined) {
       query.isActive = isActive === 'true';
     }
     
+    if (websiteId) {
+      query.websiteId = websiteId;
+    }
+    
     const languages = await languageService.getAllLanguages(query);
     
     sendSuccess(res, languages, 'Languages retrieved successfully');
+  });
+
+  // Get languages for a specific website
+  getLanguagesByWebsite = asyncHandler(async (req: Request, res: Response) => {
+    const websiteId = req.params.websiteId;
+    
+    const languages = await languageService.getLanguagesByWebsite(websiteId);
+    
+    sendSuccess(res, languages, `Languages for website ${websiteId} retrieved successfully`);
   });
 
   // Get language by ID

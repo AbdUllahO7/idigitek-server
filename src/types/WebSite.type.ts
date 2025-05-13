@@ -1,4 +1,5 @@
 import { Schema } from 'mongoose';
+import { ILanguages } from './languages.types';
 
 export interface WebSiteProps {
   name: string;
@@ -8,6 +9,7 @@ export interface WebSiteProps {
   createdAt?: Date;
   updatedAt?: Date;
   metadata?: any;
+  languages?: ILanguages[];
 
 }
 
