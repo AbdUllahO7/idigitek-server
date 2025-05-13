@@ -246,4 +246,57 @@ export class SectionController {
       data: sections
     });
   });
+
+
+  /**
+   * Get all sections for a specific website
+   * @route GET /api/sections/website/:websiteId
+   */
+  getSectionsByWebsiteId = asyncHandler(async (req: Request, res: Response) => {
+    const { websiteId } = req.params;
+    const { includeInactive } = req.query;
+    
+    if (!websiteId) {
+      throw AppError.badRequest('Website ID is required');
+    }
+    
+    // Convert string query param to boolean
+    const showInactive = includeInactive === 'true';
+    
+    const sections = await this.sectionService.getSectionsByWebsiteId(websiteId, showInactive);
+    
+    return res.status(200).json({
+      success: true,
+      count: sections.length,
+      data: sections
+    });
+  });
+
+  /**
+   * Get all sections with complete data for a specific website
+   * @route GET /api/sections/website/:websiteId/complete
+   */
+  getSectionsWithDataByWebsiteId = asyncHandler(async (req: Request, res: Response) => {
+    const { websiteId } = req.params;
+    const { includeInactive, languageId } = req.query;
+    
+    if (!websiteId) {
+      throw AppError.badRequest('Website ID is required');
+    }
+    
+    // Convert string query param to boolean
+    const showInactive = includeInactive === 'true';
+    
+    const sectionsWithData = await this.sectionService.getSectionsWithDataByWebsiteId(
+      websiteId,
+      showInactive,
+      languageId as string | undefined
+    );
+    
+    return res.status(200).json({
+      success: true,
+      count: sectionsWithData.length,
+      data: sectionsWithData
+    });
+  });
 }

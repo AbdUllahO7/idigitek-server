@@ -2,15 +2,31 @@ import mongoose from "mongoose";
 import LanguageModel from "../models/languages.model";
 import { ILanguages, ICreateLanguage, IUpdateLanguage } from "../types/languages.types";
 import { AppError } from "../middleware/errorHandler.middleware";
+import WebSiteModel from "../models/WebSite.model";
 
 export class LanguageService {
-  // Create a new language
+  // Create a new language for a website
   async createLanguage(languageData: ICreateLanguage) {
     try {
+      // Verify that the website exists
+      if (!languageData.websiteId) {
+        throw AppError.badRequest('Website ID is required');
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(languageData.websiteId)) {
+        throw AppError.validation('Invalid website ID format');
+      }
+
+      const website = await WebSiteModel.findById(languageData.websiteId);
+      if (!website) {
+        throw AppError.notFound(`Website with ID ${languageData.websiteId} not found`);
+      }
+      
       const language = new LanguageModel({
         language: languageData.language,
         languageID: languageData.languageID,
         isActive: languageData.isActive || false,
+        websiteId: languageData.websiteId,
         subSections: languageData.subSections || []
       });
       
@@ -20,19 +36,45 @@ export class LanguageService {
       if (error.code === 11000) {
         // Handle duplicate key error
         const field = Object.keys(error.keyPattern)[0];
-        throw new Error(`Language with this ${field} already exists`);
+        if (error.keyPattern.websiteId && (error.keyPattern.language || error.keyPattern.languageID)) {
+          throw new Error(`Language with this ${field === 'websiteId' ? 'combination' : field} already exists for this website`);
+        } else {
+          throw new Error(`Language with this ${field} already exists`);
+        }
       }
-      throw error;
+      if (error instanceof AppError) throw error;
+      throw AppError.database('Failed to create language', error);
     }
   }
 
-  // Get all languages
+  // Get all languages, optionally filtered by websiteId
   async getAllLanguages(query: any = {}) {
     try {
+      // If websiteId is provided, validate it
+      if (query.websiteId && !mongoose.Types.ObjectId.isValid(query.websiteId)) {
+        throw AppError.validation('Invalid website ID format');
+      }
+      
       const languages = await LanguageModel.find(query).populate('subSections');
       return languages;
     } catch (error) {
-      throw error;
+      if (error instanceof AppError) throw error;
+      throw AppError.database('Failed to retrieve languages', error);
+    }
+  }
+
+  // Get languages for a specific website
+  async getLanguagesByWebsite(websiteId: string) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(websiteId)) {
+        throw AppError.validation('Invalid website ID format');
+      }
+      
+      const languages = await LanguageModel.find({ websiteId }).populate('subSections');
+      return languages;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw AppError.database('Failed to retrieve languages for website', error);
     }
   }
 
@@ -40,16 +82,17 @@ export class LanguageService {
   async getLanguageById(id: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new Error('Invalid language ID format');
+        throw AppError.validation('Invalid language ID format');
       }
       
       const language = await LanguageModel.findById(id).populate('subSections');
       if (!language) {
-        throw new Error('Language not found');
+        throw AppError.notFound('Language not found');
       }
       return language;
     } catch (error) {
-      throw error;
+      if (error instanceof AppError) throw error;
+      throw AppError.database('Failed to retrieve language', error);
     }
   }
 
@@ -57,7 +100,19 @@ export class LanguageService {
   async updateLanguage(id: string, updateData: IUpdateLanguage) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new Error('Invalid language ID format');
+        throw AppError.validation('Invalid language ID format');
+      }
+      
+      // If websiteId is being changed, verify the new website exists
+      if (updateData.websiteId) {
+        if (!mongoose.Types.ObjectId.isValid(updateData.websiteId)) {
+          throw AppError.validation('Invalid website ID format');
+        }
+        
+        const website = await WebSiteModel.findById(updateData.websiteId);
+        if (!website) {
+          throw AppError.notFound(`Website with ID ${updateData.websiteId} not found`);
+        }
       }
       
       const language = await LanguageModel.findByIdAndUpdate(
@@ -67,7 +122,7 @@ export class LanguageService {
       ).populate('subSections');
       
       if (!language) {
-        throw new Error('Language not found');
+        throw AppError.notFound('Language not found');
       }
       
       return language;
@@ -75,9 +130,14 @@ export class LanguageService {
       if (error.code === 11000) {
         // Handle duplicate key error
         const field = Object.keys(error.keyPattern)[0];
-        throw new Error(`Language with this ${field} already exists`);
+        if (error.keyPattern.websiteId && (error.keyPattern.language || error.keyPattern.languageID)) {
+          throw AppError.badRequest(`Language with this ${field === 'websiteId' ? 'combination' : field} already exists for this website`);
+        } else {
+          throw AppError.badRequest(`Language with this ${field} already exists`);
+        }
       }
-      throw error;
+      if (error instanceof AppError) throw error;
+      throw AppError.database('Failed to update language', error);
     }
   }
 
@@ -85,17 +145,18 @@ export class LanguageService {
   async deleteLanguage(id: string) {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new Error('Invalid language ID format');
+        throw AppError.validation('Invalid language ID format');
       }
       
       const language = await LanguageModel.findByIdAndDelete(id);
       if (!language) {
-        throw new Error('Language not found');
+        throw AppError.notFound('Language not found');
       }
       
       return { message: 'Language deleted successfully' };
     } catch (error) {
-      throw error;
+      if (error instanceof AppError) throw error;
+      throw AppError.database('Failed to delete language', error);
     }
   }
 
@@ -119,7 +180,7 @@ export class LanguageService {
       return language;
     } catch (error) {
       if (error instanceof AppError) throw error;
-      throw AppError.badRequest('Failed to update language active status', error);
+      throw AppError.database('Failed to update language active status', error);
     }
   }
 

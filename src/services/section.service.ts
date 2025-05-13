@@ -4,13 +4,8 @@ import ContentTranslationModel from '../models/ContentTranslation.model';
 import SectionModel from '../models/sections.model';
 import SubSectionModel from '../models/subSections.model';
 import SectionItemModel from '../models/sectionItems.model';
-import { UserSectionService } from './UserSection.service';
 
 export class SectionService {
-
-  private userSectionService: UserSectionService;
-
-
   // Create a new section
   async createSection(sectionData: {
     name: string; 
@@ -18,54 +13,15 @@ export class SectionService {
     image?: string;
     isActive?: boolean;
     order?: number;
-    WebSiteId : Schema.Types.ObjectId,
+    WebSiteId: Schema.Types.ObjectId,
   }) {
     try {
-      // Ensure name is not null, undefined, or empty string
-      if (!sectionData.name || sectionData.name.trim() === '') {
-        throw new Error('Section name is required and cannot be empty');
-      }
-      
-      // Check if section with the same name already exists
-      const existingSection = await SectionModel.findOne({ 
-        name: sectionData.name 
-      });
-      
-      if (existingSection) {
-        throw new Error(`Section with name "${sectionData.name}" already exists`);
-      }
-      
+    
       const section = new SectionModel(sectionData);
       await section.save();
       return section;
     } catch (error: any) {
-      // If this is a duplicate key error, provide a clearer message
-      if (error.name === 'MongoServerError' && error.code === 11000) {
-        throw new Error(`Section with name "${sectionData.name}" already exists`);
-      }
-      throw error;
-    }
-  }
-
-  // Get all sections
-  async getAllSections(query: any = {}) {
-    try {
-      const sections = await SectionModel.find(query).sort({ order: 1 });
-      return sections;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // Get section by ID
-  async getSectionById(id: string) {
-    try {
-      const section = await SectionModel.findById(id);
-      if (!section) {
-        throw new Error('Section not found');
-      }
-      return section;
-    } catch (error) {
+    
       throw error;
     }
   }
@@ -79,14 +35,22 @@ export class SectionService {
           throw new Error('Section name cannot be empty');
         }
         
-        // Check if another section with the same name already exists (except this one)
+        // Get the current section to retrieve its WebSiteId
+        const currentSection = await SectionModel.findById(id);
+        if (!currentSection) {
+          throw new Error('Section not found');
+        }
+        
+        // Check if another section with the same name already exists FOR THE SAME WEBSITE
+        // Again, this is the key change - we only check for duplicates within the same website
         const existingSection = await SectionModel.findOne({ 
           name: updateData.name,
+          WebSiteId: currentSection.WebSiteId,
           _id: { $ne: id } // Exclude current section from check
         });
         
         if (existingSection) {
-          throw new Error(`Another section with name "${updateData.name}" already exists`);
+          throw new Error(`Another section with name "${updateData.name}" already exists for this website`);
         }
       }
       
@@ -131,41 +95,59 @@ export class SectionService {
     } catch (error: any) {
       // If this is a duplicate key error, provide a clearer message
       if (error.name === 'MongoServerError' && error.code === 11000) {
-        throw new Error(`Another section with the same name already exists`);
+        throw new Error(`Another section with the same name already exists for this website`);
       }
       throw error;
     }
   }
 
-  // Update section status
-async updateSectionStatus(id: string, isActive: boolean) {
-  try {
-    const section = await SectionModel.findByIdAndUpdate(
-      id,
-      { isActive },
-      { new: true, runValidators: true }
-    );
-    
-    if (!section) {
-      throw new Error('Section not found');
+  // Get all sections
+  async getAllSections(query: any = {}) {
+    try {
+      const sections = await SectionModel.find(query).sort({ order: 1 });
+      return sections;
+    } catch (error) {
+      throw error;
     }
-    
-    // If section is being deactivated, deactivate it for all users
-    if (!isActive) {
-      await this.userSectionService.handleSectionGlobalDeactivation(id);
-    }
-    
-    return section;
-  } catch (error) {
-    throw error;
   }
-}
 
-    // Delete section
-    async deleteSection(id: string) {
-      const session = await mongoose.startSession();
-      session.startTransaction();
-    
+  // Get section by ID
+  async getSectionById(id: string) {
+    try {
+      const section = await SectionModel.findById(id);
+      if (!section) {
+        throw new Error('Section not found');
+      }
+      return section;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Update section status
+  async updateSectionStatus(id: string, isActive: boolean) {
+    try {
+      const section = await SectionModel.findByIdAndUpdate(
+        id,
+        { isActive },
+        { new: true, runValidators: true }
+      );
+      
+      if (!section) {
+        throw new Error('Section not found');
+      }
+      
+      return section;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Delete section
+  async deleteSection(id: string) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+  
     try {
       // Get the section with its image
       const section = await SectionModel.findById(id).session(session);
@@ -234,81 +216,81 @@ async updateSectionStatus(id: string, isActive: boolean) {
     }
   }
 
-    // Get section with all related content (subsections and content elements)
-    async getSectionWithContent(id: string, languageId: string) {
-      try {
-        const section = await SectionModel.findById(id);
-        if (!section) {
-          throw new Error('Section not found');
-        }
+  // Get section with all related content (subsections and content elements)
+  async getSectionWithContent(id: string, languageId: string) {
+    try {
+      const section = await SectionModel.findById(id);
+      if (!section) {
+        throw new Error('Section not found');
+      }
+      
+      // Get all subsections for this section
+      const subsections = await SubSectionModel.find({ sectionId: id }).sort({ order: 1 });
+      
+      // Get all content elements for the section
+      const sectionElements = await ContentElementModel.find({
+        parentType: 'section',
+        parentId: id
+      }).sort({ order: 1 });
+      
+      // Get all content element IDs for section and subsections
+      const sectionElementIds = sectionElements.map(el => el._id);
+      const subsectionIds = subsections.map(sub => sub._id);
+      
+      // Get all content elements for the subsections
+      const subsectionElements = await ContentElementModel.find({
+        parentType: 'subsection',
+        parentId: { $in: subsectionIds }
+      }).sort({ order: 1 });
+      
+      const allElementIds = [...sectionElementIds, ...subsectionElements.map(el => el._id)];
+      
+      // Get all translations for the content elements
+      const translations = await ContentTranslationModel.find({
+        elementId: { $in: allElementIds },
+        languageId
+      });
+      
+      // Map translations to their elements
+      const translationsMap = translations.reduce((map, trans) => {
+        map[trans.id.toString()] = trans.content;
+        return map;
+      }, {} as Record<string, any>);
+      
+      // Add translations to section elements
+      const sectionElementsWithTranslations = sectionElements.map(element => ({
+        ...element.toObject(),
+        value: translationsMap[element._id.toString()] || null
+      }));
+      
+      // Process subsections with their elements and translations
+      const subsectionsWithContent = await Promise.all(subsections.map(async (subsection) => {
+        const subsectionElementsForThisSubsection = subsectionElements.filter(
+          el => el.parent.toString() === subsection._id.toString()
+        );
         
-        // Get all subsections for this section
-        const subsections = await SubSectionModel.find({ sectionId: id }).sort({ order: 1 });
-        
-        // Get all content elements for the section
-        const sectionElements = await ContentElementModel.find({
-          parentType: 'section',
-          parentId: id
-        }).sort({ order: 1 });
-        
-        // Get all content element IDs for section and subsections
-        const sectionElementIds = sectionElements.map(el => el._id);
-        const subsectionIds = subsections.map(sub => sub._id);
-        
-        // Get all content elements for the subsections
-        const subsectionElements = await ContentElementModel.find({
-          parentType: 'subsection',
-          parentId: { $in: subsectionIds }
-        }).sort({ order: 1 });
-        
-        const allElementIds = [...sectionElementIds, ...subsectionElements.map(el => el._id)];
-        
-        // Get all translations for the content elements
-        const translations = await ContentTranslationModel.find({
-          elementId: { $in: allElementIds },
-          languageId
-        });
-        
-        // Map translations to their elements
-        const translationsMap = translations.reduce((map, trans) => {
-          map[trans.id.toString()] = trans.content;
-          return map;
-        }, {} as Record<string, any>);
-        
-        // Add translations to section elements
-        const sectionElementsWithTranslations = sectionElements.map(element => ({
+        const elementsWithTranslations = subsectionElementsForThisSubsection.map(element => ({
           ...element.toObject(),
           value: translationsMap[element._id.toString()] || null
         }));
         
-        // Process subsections with their elements and translations
-        const subsectionsWithContent = await Promise.all(subsections.map(async (subsection) => {
-          const subsectionElementsForThisSubsection = subsectionElements.filter(
-            el => el.parent.toString() === subsection._id.toString()
-          );
-          
-          const elementsWithTranslations = subsectionElementsForThisSubsection.map(element => ({
-            ...element.toObject(),
-            value: translationsMap[element._id.toString()] || null
-          }));
-          
-          return {
-            ...subsection.toObject(),
-            elements: elementsWithTranslations
-          };
-        }));
-        
         return {
-          ...section.toObject(),
-          elements: sectionElementsWithTranslations,
-          subsections: subsectionsWithContent
+          ...subsection.toObject(),
+          elements: elementsWithTranslations
         };
-      } catch (error) {
-        throw error;
-      }
+      }));
+      
+      return {
+        ...section.toObject(),
+        elements: sectionElementsWithTranslations,
+        subsections: subsectionsWithContent
+      };
+    } catch (error) {
+      throw error;
     }
+  }
 
-    /**
+  /**
    * Get section by ID with all related data (section items and subsections)
    * @param id Section ID
    * @param includeInactive Whether to include inactive items
@@ -526,4 +508,109 @@ async updateSectionStatus(id: string, isActive: boolean) {
     }
   }
 
+  /**
+   * Get all sections for a specific website
+   * @param websiteId The ID of the website
+   * @param includeInactive Whether to include inactive sections (default: false)
+   * @returns Array of sections belonging to the website
+   */
+  async getSectionsByWebsiteId(websiteId: Schema.Types.ObjectId | string, includeInactive: boolean = false) {
+    try {
+      if (!websiteId) {
+        throw new Error('Website ID is required');
+      }
+
+      // Build the query based on the websiteId and active status
+      const query: any = { WebSiteId: websiteId };
+      if (!includeInactive) {
+        query.isActive = true;
+      }
+      
+      // Find sections matching the query and sort by order
+      const sections = await SectionModel.find(query).sort({ order: 1 });
+      
+      return sections;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get all sections with complete data for a specific website
+   * @param websiteId The ID of the website
+   * @param includeInactive Whether to include inactive items (default: false)
+   * @param languageId Optional language ID for translations
+   * @returns Array of sections with their items and subsections
+   */
+  async getSectionsWithDataByWebsiteId(
+    websiteId: Schema.Types.ObjectId | string, 
+    includeInactive: boolean = false, 
+    languageId?: string
+  ) {
+    try {
+      if (!websiteId) {
+        throw new Error('Website ID is required');
+      }
+
+      // Get sections for this website
+      const query = { WebSiteId: websiteId };
+      if (!includeInactive) {
+        query.isActive = true;
+      }
+      
+      // Use the existing getAllSectionsWithData method with our website-specific query
+      const sectionsWithData = await this.getAllSectionsWithData(
+        query,
+        includeInactive,
+        languageId
+      );
+      
+      return sectionsWithData;
+    } catch (error) {
+      throw error;
+    }
+  }
+  /**
+ * Check if a section with the given name already exists for a website
+ * Useful for debugging duplicate section name issues
+ */
+  async checkExistingSections(name: string, websiteId: Schema.Types.ObjectId | string) {
+    try {
+      console.log(`Checking for existing sections with name "${name}" for website "${websiteId}"`);
+      
+      // Find ALL sections with this name (across all websites)
+      const allSectionsWithName = await SectionModel.find({ name });
+      console.log(`Found ${allSectionsWithName.length} section(s) with name "${name}" across all websites:`);
+      
+      allSectionsWithName.forEach(section => {
+        console.log(`- Section ID: ${section._id}, Website ID: ${section.WebSiteId}, Name: ${section.name}`);
+      });
+      
+      // Find sections with this name for this specific website
+      const sectionsForWebsite = await SectionModel.find({ 
+        name, 
+        WebSiteId: websiteId 
+      });
+      
+      console.log(`Found ${sectionsForWebsite.length} section(s) with name "${name}" for website "${websiteId}"`);
+      sectionsForWebsite.forEach(section => {
+        console.log(`- Section ID: ${section._id}, Name: ${section.name}`);
+      });
+      
+      // Check if there are any indexes on the collection
+      const indexes = await SectionModel.collection.indexes();
+      console.log('Current indexes on Sections collection:', JSON.stringify(indexes, null, 2));
+      
+      return { 
+        allSectionsWithName, 
+        sectionsForWebsite,
+        indexes 
+      };
+    } catch (error) {
+      console.error('Error checking existing sections:', error);
+      throw error;
+    }
+  }
 }
+
+

@@ -56,5 +56,6 @@ router.delete(
   '/:id',
   sectionController.deleteSection
 );
-
+router.get('/website/:websiteId', sectionController.getSectionsByWebsiteId);
+router.get('/website/:websiteId/complete', sectionController.getSectionsWithDataByWebsiteId);
 export default router;
