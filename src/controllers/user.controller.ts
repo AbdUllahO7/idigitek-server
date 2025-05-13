@@ -14,14 +14,11 @@ class UserController {
      * Get current user profile
      */
   getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
-
-    console.log('req.user?.id' , req.user?.id)
     if (!req.user?.id) {
       throw AppError.badRequest('User ID is required');
     }
     
     const user = await userService.getCurrentUser(req.user.id);
-    console.log(user)
     return sendSuccess(res, user, 'User profile retrieved successfully');
   });
 
@@ -59,8 +56,6 @@ class UserController {
     
     // First check if the target user is an owner
     const targetUser = await userService.getUserById(userId);
-    console.log("targetUser" , targetUser)
-    console.log("req.user?.role", req.user?.role)
     if (targetUser.role === UserRole.OWNER) {
       // If target is an owner, check if current user is also an owner
       if (req.user?.role !== UserRole.OWNER) {
@@ -249,7 +244,6 @@ class UserController {
    */
   getOwnerUsers = asyncHandler(async (req: Request, res: Response) => {
     const owners = await userService.getOwnerUsers();
-    console.log("owners", owners)
     return sendSuccess(res, owners, 'Owner users retrieved successfully');
   });
   

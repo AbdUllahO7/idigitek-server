@@ -471,7 +471,6 @@ class UserService {
     try {
       const owners = await UserModel.find({ role: UserRole.OWNER })
         .select('-password -refreshToken -emailVerificationToken -passwordResetToken');
-      console.log("owners" , owners)
       // Format users
       return owners.map(user => ({
         id: user._id,

@@ -38,22 +38,7 @@ class AuthController {
       try {
         // Check if any users exist in the system
         const userCount = await userService.getUserCount();
-        
-        if (userCount === 0) {
-          // Create the initial owner user
-          const ownerUser = {
-            firstName: "Idigitek",
-            lastName: "-Admin",
-            email: "admin@idigitek.com",
-            password: "idigitek176984", // This should be changed after first login
-            role: "owner",
-            status : "active"
-          };
-          
-          await authService.register(ownerUser);
-          console.log("Initial owner user created successfully");
-        }
-        
+              
         // Set flag to true so this code only runs once
         this.initialOwnerCreated = true;
       } catch (error) {

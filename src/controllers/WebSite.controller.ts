@@ -243,13 +243,8 @@ export class WebSiteController {
   async getWebSiteUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const requestingUserId = req.user.id; // Assuming req.user is set by auth middleware
-
-      console.log("id : " , id )
-      console.log("req.user.id" , req.user.id)
-      
+      const requestingUserId = req.user.id; // Assuming req.user is set by auth middleware      
       const users = await webSiteService.getWebSiteUsers(id, requestingUserId);
-      
       res.status(200).json({
         status: 'success',
         results: users.length,

@@ -960,7 +960,6 @@ class SubSectionService {
             })
             .populate('section')
             .populate('languages')
-            console.log("mainSubsection", mainSubsection)
             return mainSubsection;
         } catch (error) {
             if (error instanceof AppError) throw error;
