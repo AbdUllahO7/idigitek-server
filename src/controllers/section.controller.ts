@@ -47,9 +47,6 @@ export class SectionController {
    */
   createSection = asyncHandler(async (req: Request, res: Response) => {
     const { name, description, image, isActive, order , WebSiteId } = req.body;
-      console.log("WebSiteId" , WebSiteId)
-      console.log("name" , name)
-
     if (!name) {
       throw AppError.badRequest('name is required');
     }

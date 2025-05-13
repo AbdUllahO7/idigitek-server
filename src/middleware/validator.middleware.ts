@@ -7,7 +7,6 @@ import { sendError } from '../utils/responseHandler';
   * @param validations Array of validation chains
 */
 export const validate = (validations: ValidationChain[]) => {
-  console.log('validate function called with validations:', !!validations, Array.isArray(validations), validations?.length);
 
   return async (req: Request, res: Response, next: NextFunction) => {
     // Execute all validations
@@ -57,5 +56,3 @@ export const validate = (validations: ValidationChain[]) => {
   };
 };
 
-// Export the function directly for debugging purposes
-console.log('validator.middleware.ts: validate function exported:', typeof validate);

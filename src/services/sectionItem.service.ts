@@ -12,7 +12,6 @@ class SectionItemService {
      * @returns Promise with the created section item
     */
     async createSectionItem(itemData: IService): Promise<IServiceDocument> {
-        console.log("itemData" , itemData)
 
         try {
             // Check if the section exists
