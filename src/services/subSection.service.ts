@@ -24,7 +24,7 @@ class SubSectionService {
                 
                 // If isMain is true and section is not provided, get section from sectionItem
                 if (subsectionData.isMain && !subsectionData.section) {
-                    subsectionData.section = sectionItemExists.section;
+                    subsectionData.section = new mongoose.Types.ObjectId(sectionItemExists.section.toString());
                 }
             }
             

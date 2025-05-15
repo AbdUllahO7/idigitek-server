@@ -4,6 +4,7 @@ import ContentTranslationModel from '../models/ContentTranslation.model';
 import SectionModel from '../models/sections.model';
 import SubSectionModel from '../models/subSections.model';
 import SectionItemModel from '../models/sectionItems.model';
+import { boolean } from 'joi';
 
 export class SectionService {
   // Create a new section
@@ -553,7 +554,7 @@ export class SectionService {
       }
 
       // Get sections for this website
-      const query = { WebSiteId: websiteId };
+      const query: { WebSiteId: Schema.Types.ObjectId | string; isActive?: boolean } = { WebSiteId: websiteId };
       if (!includeInactive) {
         query.isActive = true;
       }
