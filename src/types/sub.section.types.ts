@@ -14,6 +14,8 @@ export interface ICreateSubSection extends Document {
   metadata?: Record<string, any>;
   createdAt?: Date;
   updatedAt?: Date;
+  elements?: any[];
+
 }
 
 export interface IUpdateSubSection {
