@@ -271,6 +271,115 @@ class SubSectionController {
     
     sendSuccess(res, mainSubsection, 'Main subsection retrieved successfully');
   });
+
+  /**
+ * Toggle active status for a subsection
+ * @route PATCH /api/subsections/:id/toggle-active
+  */
+  toggleSubSectionActive = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw AppError.validation('Invalid subsection ID format');
+    }
+    
+    const { status } = req.body;
+    
+    if (typeof status !== 'boolean') {
+      throw AppError.validation('Status must be a boolean value');
+    }
+    
+    const subsection = await subSectionService.toggleSubSectionActiveStatus(
+      req.params.id, 
+      status
+    );
+    
+    sendSuccess(res, subsection, `Subsection ${status ? 'activated' : 'deactivated'} successfully`);
+  });
+
+  /**
+   * Update order for a specific subsection
+   * @route PATCH /api/subsections/:id/order
+   */
+  updateSubSectionOrder = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw AppError.validation('Invalid subsection ID format');
+    }
+    
+    const { order } = req.body;
+    
+    if (typeof order !== 'number') {
+      throw AppError.validation('Order must be a number');
+    }
+    
+    const subsection = await subSectionService.updateSubSectionOrder(
+      req.params.id, 
+      order
+    );
+    
+    sendSuccess(res, subsection, 'Subsection order updated successfully');
+  });
+
+/**
+ * Reorder all subsections within a section item to ensure sequential ordering
+ * @route POST /api/subsections/sectionItem/:sectionItemId/reorder
+ */
+  reorderSubSectionsInSectionItem = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.sectionItemId)) {
+      throw AppError.validation('Invalid section item ID format');
+    }
+    
+    const result = await subSectionService.reorderSubSectionsInSectionItem(
+      req.params.sectionItemId
+    );
+    
+    sendSuccess(res, result, result.message);
+  });
+
+/**
+ * Move a subsection up or down in order
+ * @route PATCH /api/subsections/:id/move/:direction
+  */
+  moveSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw AppError.validation('Invalid subsection ID format');
+    }
+    
+    const direction = req.params.direction as 'up' | 'down';
+    
+    if (direction !== 'up' && direction !== 'down') {
+      throw AppError.validation('Direction must be either "up" or "down"');
+    }
+    
+    const subsection = await subSectionService.moveSubSection(
+      req.params.id, 
+      direction
+    );
+    
+    sendSuccess(res, subsection, `Subsection moved ${direction} successfully`);
+  });
+  /**
+ * Activate or deactivate a subsection with special business logic
+ * @route PATCH /api/subsections/:id/activate
+  */
+  activateDeactivateSubSection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw AppError.validation('Invalid subsection ID format');
+    }
+    
+    const { isActive, affectChildren = true, recursive = false } = req.body;
+    
+    if (typeof isActive !== 'boolean') {
+      throw AppError.validation('isActive must be a boolean value');
+    }
+    
+    const subsection = await subSectionService.activateDeactivateSubSection(
+      req.params.id, 
+      isActive,
+      affectChildren,
+      recursive
+    );
+    
+    sendSuccess(res, subsection, `Subsection ${isActive ? 'activated' : 'deactivated'} successfully`);
+  });
 }
 
 export default new SubSectionController();

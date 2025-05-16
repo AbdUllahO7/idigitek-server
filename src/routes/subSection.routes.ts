@@ -31,4 +31,14 @@ router.get('/section/:sectionId', subSectionController.getCompleteSubSectionsByS
 router.get('/section/:sectionId/main', subSectionController.getMainSubSectionBySectionId);
 router.get('/section/:sectionId/complete', subSectionController.getCompleteSubSectionsBySectionId); // New route
 
+router.put('/order', subSectionController.updateSubsectionsOrder);
+router.post('/sectionItem/:sectionItemId/reorder', subSectionController.reorderSubSectionsInSectionItem);
+
+// Active status and order management
+router.patch('/:id/toggle-active', subSectionController.toggleSubSectionActive);
+router.patch('/:id/order', subSectionController.updateSubSectionOrder);
+router.patch('/:id/move/:direction', subSectionController.moveSubSection);
+router.patch('/:id/activate', subSectionController.activateDeactivateSubSection);
+
+
 export default router;
