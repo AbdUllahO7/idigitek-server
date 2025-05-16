@@ -17,7 +17,7 @@ const WebSiteSchema = new Schema<WebSiteProps>(
     logo: {
         type: String,
     },
-    job: {
+    sector: {
         type: String,
     },
     },

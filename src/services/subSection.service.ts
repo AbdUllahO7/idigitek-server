@@ -26,8 +26,8 @@ class SubSectionService {
                 if (subsectionData.isMain && !subsectionData.section) {
                     subsectionData.section = new mongoose.Types.ObjectId(sectionItemExists.section.toString());
                 }
-            }
-            
+                }
+                
                 // If isMain is true, check if other main subsections exist for this section
                 if (subsectionData.isMain && subsectionData.section) {
                     await this.handleMainSubSection(null, subsectionData.section);
@@ -92,8 +92,6 @@ class SubSectionService {
             throw AppError.database('Failed to update main subsection status', error);
         }
     }
-
-    
     /**
      * Get all subsections
      * @param activeOnly Whether to return only active subsections
@@ -966,6 +964,280 @@ class SubSectionService {
             throw AppError.database('Failed to retrieve main subsection for WebSite', error);
         }
     }
+
+    async toggleSubSectionActiveStatus(id: string, status: boolean): Promise<ICreateSubSection> {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw AppError.validation('Invalid subsection ID format');
+        }
+
+        const subsection = await SubSectionModel.findById(id);
+        
+        if (!subsection) {
+            throw AppError.notFound(`Subsection with ID ${id} not found`);
+        }
+        
+        // Update the subsection active status
+        const updatedSubSection = await SubSectionModel.findByIdAndUpdate(
+            id,
+            { $set: { isActive: status } },
+            { new: true, runValidators: true }
+        ).populate({
+            path: 'sectionItem',
+            populate: {
+                path: 'section'
+            }
+        }).populate('languages');
+        
+        
+        
+        return updatedSubSection;
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        throw AppError.database('Failed to update subsection active status', error);
+    }
+    }
+/**
+ * Update order for a specific subsection
+ * @param id The subsection ID
+ * @param order The new order value
+ * @returns Promise with the updated subsection
+ */
+    async updateSubSectionOrder(id: string, order: number): Promise<ICreateSubSection> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                throw AppError.validation('Invalid subsection ID format');
+            }
+
+            if (typeof order !== 'number') {
+                throw AppError.validation('Order must be a number');
+            }
+
+            const subsection = await SubSectionModel.findById(id);
+            
+            if (!subsection) {
+                throw AppError.notFound(`Subsection with ID ${id} not found`);
+            }
+            
+            // Update the subsection order
+            const updatedSubSection = await SubSectionModel.findByIdAndUpdate(
+                id,
+                { $set: { order } },
+                { new: true, runValidators: true }
+            ).populate({
+                path: 'sectionItem',
+                populate: {
+                    path: 'section'
+                }
+            }).populate('languages');
+            
+            return updatedSubSection;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database('Failed to update subsection order', error);
+        }
+    }
+
+    /**
+     * Reorder subsections within a specific section item
+     * @param sectionItemId The section item ID
+     * @returns Promise with success message
+     */
+    async reorderSubSectionsInSectionItem(sectionItemId: string): Promise<{ success: boolean; message: string }> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(sectionItemId)) {
+                throw AppError.validation('Invalid section item ID format');
+            }
+
+            // Get all subsections for this section item, ordered by current order
+            const subsections = await SubSectionModel.find({ 
+                sectionItem: sectionItemId,
+                isActive: true 
+            }).sort({ order: 1, createdAt: -1 });
+            
+            if (subsections.length === 0) {
+                return { success: true, message: 'No subsections found to reorder' };
+            }
+            
+            // Update orders to ensure they are sequential starting from 0
+            const bulkOps = subsections.map((subsection, index) => ({
+                updateOne: {
+                    filter: { _id: subsection._id },
+                    update: { $set: { order: index } }
+                }
+            }));
+
+            await SubSectionModel.bulkWrite(bulkOps);
+            
+            return { 
+                success: true, 
+                message: `Reordered ${subsections.length} subsections in section item ${sectionItemId}` 
+            };
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database('Failed to reorder subsections', error);
+        }
+    }
+
+    /**
+     * Move a subsection up or down in order within its section item
+     * @param id The subsection ID
+     * @param direction 'up' to decrease order, 'down' to increase order
+     * @returns Promise with the updated subsection
+     */
+    async moveSubSection(id: string, direction: 'up' | 'down'): Promise<ICreateSubSection> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                throw AppError.validation('Invalid subsection ID format');
+            }
+
+            const subsection = await SubSectionModel.findById(id);
+            
+            if (!subsection) {
+                throw AppError.notFound(`Subsection with ID ${id} not found`);
+            }
+            
+            // Find the subsection to swap with
+            const query: any = { 
+                sectionItem: subsection.sectionItem,
+                isActive: true
+            };
+            
+            if (direction === 'up') {
+                // Find the subsection with the next lower order
+                query.order = { $lt: subsection.order };
+                const swapSubsection = await SubSectionModel.findOne(query).sort({ order: -1 });
+                
+                if (!swapSubsection) {
+                    // Already at the top
+                    return subsection;
+                }
+                
+                // Swap orders
+                const tempOrder = swapSubsection.order;
+                swapSubsection.order = subsection.order;
+                subsection.order = tempOrder;
+                
+                await swapSubsection.save();
+            } else {
+                // Find the subsection with the next higher order
+                query.order = { $gt: subsection.order };
+                const swapSubsection = await SubSectionModel.findOne(query).sort({ order: 1 });
+                
+                if (!swapSubsection) {
+                    // Already at the bottom
+                    return subsection;
+                }
+                
+                // Swap orders
+                const tempOrder = swapSubsection.order;
+                swapSubsection.order = subsection.order;
+                subsection.order = tempOrder;
+                
+                await swapSubsection.save();
+            }
+            
+            await subsection.save();
+            
+            // Return the updated subsection with populated fields
+            return await SubSectionModel.findById(id)
+                .populate({
+                    path: 'sectionItem',
+                    populate: {
+                        path: 'section'
+                    }
+                })
+                .populate('languages');
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database(`Failed to move subsection ${direction}`, error);
+        }
+    }
+    /**
+     * Activate or deactivate a subsection with special business logic
+     * @param id The subsection ID
+     * @param isActive The new active status (true to activate, false to deactivate)
+     * @param affectChildren Whether to affect child content elements (default: true)
+     * @param recursive Whether to affect child subsections (if applicable) (default: false)
+     * @returns Promise with the updated subsection
+     */
+    async activateDeactivateSubSection(
+        id: string, 
+        isActive: boolean,
+        affectChildren: boolean = true,
+        recursive: boolean = false
+    ): Promise<ICreateSubSection> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                throw AppError.validation('Invalid subsection ID format');
+            }
+
+            const subsection = await SubSectionModel.findById(id);
+            
+            if (!subsection) {
+                throw AppError.notFound(`Subsection with ID ${id} not found`);
+            }
+            
+            // If attempting to deactivate a main subsection, check business rules
+            if (!isActive && subsection.isMain) {
+                // You may want to prevent deactivating main subsections
+                // or automatically assign main status to another subsection
+                const parentId = subsection.section || subsection.sectionItem;
+                
+                if (parentId) {
+                    // Find if there are other active subsections that could become main
+                    const otherActiveSubsections = await SubSectionModel.find({
+                        $or: [
+                            { section: parentId },
+                            { sectionItem: parentId }
+                        ],
+                        _id: { $ne: id },
+                        isActive: true
+                    });
+                    
+                    if (otherActiveSubsections.length === 0) {
+                        throw AppError.badRequest(
+                            'Cannot deactivate the main subsection when no other active subsections exist. ' +
+                            'Please activate another subsection first, or set it as main.'
+                        );
+                    }
+                    
+                    // Optionally, automatically set another subsection as main
+                    if (subsection.isMain && !isActive) {
+                        // Find the first active subsection to make main
+                        const newMainSubsection = otherActiveSubsections[0];
+                        newMainSubsection.isMain = true;
+                        await newMainSubsection.save();
+                        
+                        console.log(`Subsection ${newMainSubsection._id} is now the main subsection`);
+                    }
+                }
+            }
+            
+            // Update the subsection active status
+            subsection.isActive = isActive;
+            await subsection.save();
+            
+          
+            
+                    
+            // Return the updated subsection with populated fields
+            const updatedSubsection = await SubSectionModel.findById(id)
+                .populate({
+                    path: 'sectionItem',
+                    populate: {
+                        path: 'section'
+                    }
+                })
+                .populate('section')
+                .populate('languages');
+            
+            return updatedSubsection;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw AppError.database('Failed to update subsection active status', error);
+        }
+}
 }
 
 export default new SubSectionService();

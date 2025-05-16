@@ -1,16 +1,28 @@
 import { Schema } from 'mongoose';
 import { ILanguages } from './languages.types';
 
+export interface SocialLinks {
+  facebook: string;
+  instagram: string;
+  twitter: string;
+  linkedin: string;
+}
+
 export interface WebSiteProps {
   name: string;
   description?: string;
   logo?: string;
-  job?: string;
+  sector?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  socialLinks?: SocialLinks;
+  businessHours?: string;
+  category?: string;
   createdAt?: Date;
   updatedAt?: Date;
   metadata?: any;
   languages?: ILanguages[];
-
 }
 
 export interface WebSiteUserProps {
