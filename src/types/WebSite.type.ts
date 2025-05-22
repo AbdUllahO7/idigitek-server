@@ -14,7 +14,7 @@ export interface WebSiteProps {
   logo?: string;
   sector?: string;
   email?: string;
-  phone?: string;
+  phoneNumber?: string;
   address?: string;
   socialLinks?: SocialLinks;
   businessHours?: string;
