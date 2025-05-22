@@ -2,6 +2,7 @@ import express from 'express';
 import { WebSiteController } from '../controllers/WebSite.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import multer from 'multer';
+import clientWebSiteController from '../controllers/client/clientWebSite.controller';
 
 const router = express.Router();
 const webSiteController = new WebSiteController();
@@ -32,4 +33,7 @@ router.route('/:id/users')
 
 router.delete('/:id/users/:userId', authenticate,webSiteController.removeUserFromWebSite);
 
+
+// New special route for getting websites by user ID with sections and languages
+router.get('/client/user/:userId', clientWebSiteController.getWebSitesByUserIdWithDetails);
 export default router;
