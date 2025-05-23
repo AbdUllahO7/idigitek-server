@@ -6,7 +6,7 @@ import { ClientWebSiteService } from '../../services/clinet/clientWebSite.servic
 const clientWebSiteService = new ClientWebSiteService();
 
 class ClientWebSiteController {
-  /**
+    /**
    * Get all websites for a specific user with sections and languages
    * @route GET /api/websites/special/user/:userId
    */

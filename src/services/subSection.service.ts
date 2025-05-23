@@ -662,98 +662,98 @@ class SubSectionService {
      * @param skip Number of subsections to skip
      * @returns Promise with array of complete subsections data including elements and translations
      */
-    async getSubSectionsBySectionItemId(
-        sectionItemId: string, activeOnly = true, limit = 100, skip = 0, includeContentCount: boolean    ): Promise<any[]> {
-                try {
-                    if (!mongoose.Types.ObjectId.isValid(sectionItemId)) {
-                        throw AppError.validation('Invalid section item ID format');
-                    }
-
-                    // Build the query to get subsections
-                    const query: any = { 
-                        sectionItem: sectionItemId 
-                    };
-                    
-                    if (activeOnly) {
-                        query.isActive = true;
-                    }
-                    
-                    // Get subsections with basic population
-                    const subsections = await SubSectionModel.find(query)
-                        .sort({ order: 1, createdAt: -1 })
-                        .skip(skip)
-                        .limit(limit)
-                        .populate({
-                            path: 'sectionItem',
-                            populate: {
-                                path: 'section'
-                            },
-                            match: activeOnly ? { isActive: true } : {}
-                        })
-                        .populate('languages');
-                    
-                    if (subsections.length === 0) {
-                        return [];
-                    }
-
-                    // Get all subsection IDs
-                    const subsectionIds = subsections.map(sub => sub._id);
-
-                    // Get all content elements for these subsections
-                    const contentElements = await ContentElementModel.find({
-                        parent: { $in: subsectionIds },
-                        isActive: activeOnly
-                    }).sort({ order: 1 });
-
-                    // Get all element IDs
-                    const elementIds = contentElements.map(element => element._id);
-
-                    // Get all translations for these elements in a single query
-                    const translations = await ContentTranslationModel.find({
-                        contentElement: { $in: elementIds },
-                        isActive: activeOnly
-                    }).populate('language');
-
-                    // Group translations by content element ID
-                    const translationsByElement: Record<string, any[]> = {};
-                    
-                    translations.forEach(translation => {
-                        const elementId = translation.contentElement.toString();
-                        if (!translationsByElement[elementId]) {
-                            translationsByElement[elementId] = [];
+        async getSubSectionsBySectionItemId(
+            sectionItemId: string, activeOnly = true, limit = 100, skip = 0, includeContentCount: boolean    ): Promise<any[]> {
+                    try {
+                        if (!mongoose.Types.ObjectId.isValid(sectionItemId)) {
+                            throw AppError.validation('Invalid section item ID format');
                         }
-                        translationsByElement[elementId].push(translation);
-                    });
 
-                    // Group content elements by subsection ID
-                    const elementsBySubsection: Record<string, any[]> = {};
-                    
-                    contentElements.forEach(element => {
-                        const subsectionId = element.parent.toString();
-                        if (!elementsBySubsection[subsectionId]) {
-                            elementsBySubsection[subsectionId] = [];
+                        // Build the query to get subsections
+                        const query: any = { 
+                            sectionItem: sectionItemId 
+                        };
+                        
+                        if (activeOnly) {
+                            query.isActive = true;
                         }
                         
-                        const elementData = element.toObject();
-                        const elementId = element._id.toString();
-                        elementData.translations = translationsByElement[elementId] || [];
-                        elementsBySubsection[subsectionId].push(elementData);
-                    });
+                        // Get subsections with basic population
+                        const subsections = await SubSectionModel.find(query)
+                            .sort({ order: 1, createdAt: -1 })
+                            .skip(skip)
+                            .limit(limit)
+                            .populate({
+                                path: 'sectionItem',
+                                populate: {
+                                    path: 'section'
+                                },
+                                match: activeOnly ? { isActive: true } : {}
+                            })
+                            .populate('languages');
+                        
+                        if (subsections.length === 0) {
+                            return [];
+                        }
 
-                    // Create complete result with subsections and their elements
-                    const result = subsections.map(subsection => {
-                        const subsectionData = subsection.toObject();
-                        const subsectionId = subsection._id.toString();
-                        subsectionData.elements = elementsBySubsection[subsectionId] || [];
-                        return subsectionData;
-                    });
+                        // Get all subsection IDs
+                        const subsectionIds = subsections.map(sub => sub._id);
 
-                    return result;
-                } catch (error) {
-                    if (error instanceof AppError) throw error;
-                    throw AppError.database('Failed to retrieve complete subsections by section item ID', error);
-                }
-    }
+                        // Get all content elements for these subsections
+                        const contentElements = await ContentElementModel.find({
+                            parent: { $in: subsectionIds },
+                            isActive: activeOnly
+                        }).sort({ order: 1 });
+
+                        // Get all element IDs
+                        const elementIds = contentElements.map(element => element._id);
+
+                        // Get all translations for these elements in a single query
+                        const translations = await ContentTranslationModel.find({
+                            contentElement: { $in: elementIds },
+                            isActive: activeOnly
+                        }).populate('language');
+
+                        // Group translations by content element ID
+                        const translationsByElement: Record<string, any[]> = {};
+                        
+                        translations.forEach(translation => {
+                            const elementId = translation.contentElement.toString();
+                            if (!translationsByElement[elementId]) {
+                                translationsByElement[elementId] = [];
+                            }
+                            translationsByElement[elementId].push(translation);
+                        });
+
+                        // Group content elements by subsection ID
+                        const elementsBySubsection: Record<string, any[]> = {};
+                        
+                        contentElements.forEach(element => {
+                            const subsectionId = element.parent.toString();
+                            if (!elementsBySubsection[subsectionId]) {
+                                elementsBySubsection[subsectionId] = [];
+                            }
+                            
+                            const elementData = element.toObject();
+                            const elementId = element._id.toString();
+                            elementData.translations = translationsByElement[elementId] || [];
+                            elementsBySubsection[subsectionId].push(elementData);
+                        });
+
+                        // Create complete result with subsections and their elements
+                        const result = subsections.map(subsection => {
+                            const subsectionData = subsection.toObject();
+                            const subsectionId = subsection._id.toString();
+                            subsectionData.elements = elementsBySubsection[subsectionId] || [];
+                            return subsectionData;
+                        });
+
+                        return result;
+                    } catch (error) {
+                        if (error instanceof AppError) throw error;
+                        throw AppError.database('Failed to retrieve complete subsections by section item ID', error);
+                    }
+        }
         /**
      * Get subsections by WebSite ID
      * @param websiteId The WebSite ID
@@ -997,46 +997,46 @@ class SubSectionService {
         throw AppError.database('Failed to update subsection active status', error);
     }
     }
-/**
- * Update order for a specific subsection
- * @param id The subsection ID
- * @param order The new order value
- * @returns Promise with the updated subsection
- */
-    async updateSubSectionOrder(id: string, order: number): Promise<ICreateSubSection> {
-        try {
-            if (!mongoose.Types.ObjectId.isValid(id)) {
-                throw AppError.validation('Invalid subsection ID format');
-            }
-
-            if (typeof order !== 'number') {
-                throw AppError.validation('Order must be a number');
-            }
-
-            const subsection = await SubSectionModel.findById(id);
-            
-            if (!subsection) {
-                throw AppError.notFound(`Subsection with ID ${id} not found`);
-            }
-            
-            // Update the subsection order
-            const updatedSubSection = await SubSectionModel.findByIdAndUpdate(
-                id,
-                { $set: { order } },
-                { new: true, runValidators: true }
-            ).populate({
-                path: 'sectionItem',
-                populate: {
-                    path: 'section'
+    /**
+     * Update order for a specific subsection
+     * @param id The subsection ID
+     * @param order The new order value
+     * @returns Promise with the updated subsection
+     */
+        async updateSubSectionOrder(id: string, order: number): Promise<ICreateSubSection> {
+            try {
+                if (!mongoose.Types.ObjectId.isValid(id)) {
+                    throw AppError.validation('Invalid subsection ID format');
                 }
-            }).populate('languages');
-            
-            return updatedSubSection;
-        } catch (error) {
-            if (error instanceof AppError) throw error;
-            throw AppError.database('Failed to update subsection order', error);
+
+                if (typeof order !== 'number') {
+                    throw AppError.validation('Order must be a number');
+                }
+
+                const subsection = await SubSectionModel.findById(id);
+                
+                if (!subsection) {
+                    throw AppError.notFound(`Subsection with ID ${id} not found`);
+                }
+                
+                // Update the subsection order
+                const updatedSubSection = await SubSectionModel.findByIdAndUpdate(
+                    id,
+                    { $set: { order } },
+                    { new: true, runValidators: true }
+                ).populate({
+                    path: 'sectionItem',
+                    populate: {
+                        path: 'section'
+                    }
+                }).populate('languages');
+                
+                return updatedSubSection;
+            } catch (error) {
+                if (error instanceof AppError) throw error;
+                throw AppError.database('Failed to update subsection order', error);
+            }
         }
-    }
 
     /**
      * Reorder subsections within a specific section item
@@ -1217,9 +1217,6 @@ class SubSectionService {
             // Update the subsection active status
             subsection.isActive = isActive;
             await subsection.save();
-            
-          
-            
                     
             // Return the updated subsection with populated fields
             const updatedSubsection = await SubSectionModel.findById(id)
