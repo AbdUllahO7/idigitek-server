@@ -172,7 +172,8 @@ class SubSectionController {
    */
   getCompleteSubSectionById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const populateSectionItem = req.query.populate !== 'false';
-    
+            console.log("getCompleteSubSectionById" ,  req.params.id, )
+
     const subsection = await subSectionService.getCompleteSubSectionById(
       req.params.id, 
       populateSectionItem
@@ -380,6 +381,42 @@ class SubSectionController {
     
     sendSuccess(res, subsection, `Subsection ${isActive ? 'activated' : 'deactivated'} successfully`);
   });
+
+   /**
+     * Get subsections by multiple section item IDs
+     * @route POST /api/subsections/sectionItems
+     */
+    getSubSectionsBySectionItemIds = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+        const { sectionItemIds } = req.body;
+        console.log('sectionItemIds:', sectionItemIds);
+        const activeOnly = req.query.activeOnly !== 'false';
+        const limit = parseInt(req.query.limit as string) || 100;
+        const skip = parseInt(req.query.skip as string) || 0;
+        const includeContentCount = req.query.includeContentCount === 'true';
+        
+        if (!sectionItemIds || !Array.isArray(sectionItemIds) || sectionItemIds.length === 0) {
+            throw AppError.badRequest('Valid sectionItemIds array is required');
+        }
+
+        // Validate each section item ID
+        sectionItemIds.forEach((id: string) => {
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                throw AppError.validation(`Invalid section item ID: ${id}`);
+            }
+        });
+        
+        const subsections = await subSectionService.getSubSectionsBySectionItemIds(
+            sectionItemIds,
+            activeOnly,
+            limit,
+            skip,
+            includeContentCount
+        );
+        
+        sendSuccess(res, subsections, 'Subsections retrieved successfully');
+    });
+
+
 }
 
 export default new SubSectionController();

@@ -166,66 +166,87 @@ class SectionItemService {
      * @param includeSubSectionCount Whether to include subsection count
      * @returns Promise with array of section items
      */
-    async getSectionItemsBySectionId(
-        sectionId: string,
-        activeOnly = true,
-        limit = 100,
-        skip = 0,
-        includeSubSectionCount = false
-    ): Promise<IServiceDocument[]> {
-        try {
-            if (!mongoose.Types.ObjectId.isValid(sectionId)) {
-                throw AppError.validation('Invalid section ID format');
-            }
+   async getSectionItemsBySectionId(
+    sectionId: string,
+    activeOnly = true,
+    limit = 100,
+    skip = 0,
+    includeSubSectionCount = true
+): Promise<IServiceDocument[]> {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(sectionId)) {
+            throw AppError.validation('Invalid section ID format');
+        }
 
-            // Build the query
-            const query: any = { 
-                section: sectionId 
-            };
+        console.log(`Fetching section items for section ID: ${sectionId}, activeOnly: ${activeOnly}, limit: ${limit}, skip: ${skip}`);
+
+        // Build the query
+        const query: any = { 
+            section: sectionId 
+        };
+        
+        if (activeOnly) {
+            query.isActive = true;
+        }
+        
+        const sectionItems = await SectionItemModel.find(query)
+            .sort({ order: 1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate({
+                path: 'section',
+                match: activeOnly ? { isActive: true } : {},
+                options: { sort: { order: 1 } }
+            })
+            .populate({
+                path: 'subsections',
+                match: activeOnly ? { isActive: true } : {},
+                options: { sort: { order: 1 } }
+            });
+        
+        // If requested, get subsection count for each section item
+        if (includeSubSectionCount && sectionItems.length > 0) {
+            const sectionItemIds = sectionItems.map(item => item._id).filter(id => id);
             
-            if (activeOnly) {
-                query.isActive = true;
-            }
-            
-            const sectionItems = await SectionItemModel.find(query)
-                .sort({ order: 1, createdAt: -1 })
-                .skip(skip)
-                .limit(limit)
-                .populate({
-                    path: 'section',
-                    match: activeOnly ? { isActive: true } : {},
-                    options: { sort: { order: 1 } }
-                });
-            
-            // If requested, get subsection count for each section item
-            if (includeSubSectionCount && sectionItems.length > 0) {
-                const sectionItemIds = sectionItems.map(item => item._id);
-                
+            if (sectionItemIds.length > 0) {
                 // Get counts for each section item
                 const subsectionCounts = await SubSectionModel.aggregate([
                     { $match: { sectionItem: { $in: sectionItemIds }, isActive: activeOnly } },
                     { $group: { _id: '$sectionItem', count: { $sum: 1 } } }
-                ]);
+                ]).catch(err => {
+                    console.error('Aggregation error:', err);
+                    throw err;
+                });
                 
                 // Create a map of section item ID to count
                 const countsMap = subsectionCounts.reduce((acc, item) => {
-                    acc[item._id.toString()] = item.count;
+                    acc[item._id?.toString() ?? ''] = item.count;
                     return acc;
                 }, {} as { [key: string]: number });
                 
                 // Add count to each section item
                 sectionItems.forEach(sectionItem => {
-                    const id = sectionItem._id.toString();
+                    const id = sectionItem._id?.toString() ?? '';
                     (sectionItem as any).subsectionCount = countsMap[id] || 0;
                 });
             }
-            
-            return sectionItems;
-        } catch (error) {
-            if (error instanceof AppError) throw error;
-            throw AppError.database('Failed to retrieve section items by section ID', error);
         }
+        
+        return sectionItems;
+    } catch (error) {
+        console.error('Error in getSectionItemsBySectionId:', {
+            sectionId,
+            activeOnly,
+            limit,
+            skip,
+            includeSubSectionCount,
+            error: error.message,
+            stack: error.stack,
+        });
+        if (error instanceof AppError) throw error;
+        throw AppError.database('Failed to retrieve section items by section ID', error);
     }
+}
 
     /**
      * Get section items by WebSite ID
