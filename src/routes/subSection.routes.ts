@@ -26,6 +26,7 @@ router.get('/website/:websiteId/main', subSectionController.getMainSubSectionByW
 // Section item routes
 router.get('/sectionItem/:sectionItemId', subSectionController.getSubSectionsBySectionItemId);
 
+
 // Section routes   
 router.get('/section/:sectionId', subSectionController.getCompleteSubSectionsBySectionId);
 router.get('/section/:sectionId/main', subSectionController.getMainSubSectionBySectionId);
@@ -39,6 +40,7 @@ router.patch('/:id/toggle-active', subSectionController.toggleSubSectionActive);
 router.patch('/:id/order', subSectionController.updateSubSectionOrder);
 router.patch('/:id/move/:direction', subSectionController.moveSubSection);
 router.patch('/:id/activate', subSectionController.activateDeactivateSubSection);
+router.post('/sectionItems', subSectionController.getSubSectionsBySectionItemIds);
 
 
 export default router;
