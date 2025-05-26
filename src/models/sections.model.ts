@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 interface ISection {
   name: string;
+  subName: string; 
   description: string;
   image: string;
   isActive: boolean;
@@ -15,6 +16,11 @@ interface ISection {
 const sectionSchema = new Schema<ISection>(
   {
     name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+     subName: {
       type: String,
       required: true,
       trim: true

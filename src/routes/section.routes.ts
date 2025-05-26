@@ -58,4 +58,8 @@ router.delete(
 );
 router.get('/website/:websiteId', sectionController.getSectionsByWebsiteId);
 router.get('/website/:websiteId/complete', sectionController.getSectionsWithDataByWebsiteId);
+// Update section order
+router.patch(
+'/order',  sectionController.updateSectionOrder
+);
 export default router;

@@ -46,13 +46,14 @@ export class SectionController {
    * Create a new section
    */
   createSection = asyncHandler(async (req: Request, res: Response) => {
-    const { name, description, image, isActive, order , WebSiteId } = req.body;
+    const { name, description, image, isActive, order , WebSiteId , subName} = req.body;
     if (!name) {
       throw AppError.badRequest('name is required');
     }
     
     const section = await this.sectionService.createSection({
       name,
+      subName,
       description,
       image,
       isActive,
@@ -296,4 +297,25 @@ export class SectionController {
       data: sectionsWithData
     });
   });
+  /**
+ * Update section order
+ * @route PATCH /api/sections/:id/order
+ */
+  updateSectionOrder = asyncHandler(async (req: Request, res: Response) => {
+    const sections = req.body; // Expect array of { id, order, websiteId }
+
+    if (!Array.isArray(sections) || sections.length === 0) {
+      throw AppError.badRequest('Sections array is required');
+    }
+
+    const updatedSections = await this.sectionService.updateSectionOrder(
+      sections.map(({ id, order, websiteId }) => ({
+        sectionId: id,
+        newOrder: order,
+        websiteId,
+      }))
+    );
+
+    return sendSuccess(res, updatedSections, 'Section order updated successfully');
+  })
 }

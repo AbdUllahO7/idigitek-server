@@ -9,13 +9,15 @@ import { boolean } from 'joi';
 export class SectionService {
   // Create a new section
   async createSection(sectionData: {
-    name: string; 
+    name: string;
+    subName : string; 
     description?: string;
     image?: string;
     isActive?: boolean;
     order?: number;
     WebSiteId: Schema.Types.ObjectId,
   }) {
+    console.log('Creating section with data:', sectionData);
     try {
     
       const section = new SectionModel(sectionData);
@@ -131,7 +133,7 @@ export class SectionService {
       const section = await SectionModel.findByIdAndUpdate(
         id,
         { isActive },
-        { new: true, runValidators: true }
+        {runValidators: true }
       );
       
       if (!section) {
@@ -602,6 +604,96 @@ export class SectionService {
       throw error;
     }
   }
+    /**
+   * Update the order of a section within a website
+   * @param sectionId The ID of the section to reorder
+   * @param newOrder The new order value for the section
+   * @param websiteId The ID of the website
+   * @returns The updated section
+   */
+async  updateSectionOrder(sections: { sectionId: string; newOrder: number; websiteId: Schema.Types.ObjectId | string }[], maxRetries = 3) {
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+
+      // Validate inputs
+      if (!sections.length) {
+        throw new Error('At least one section is required');
+      }
+
+      const websiteId = sections[0].websiteId; // Assume all sections belong to the same website
+      if (!websiteId) {
+        throw new Error('Website ID is required');
+      }
+
+      // Validate all sections exist and belong to the website
+      const sectionIds = sections.map(s => s.sectionId);
+      const existingSections = await SectionModel.find({ 
+        _id: { $in: sectionIds }, 
+        WebSiteId: websiteId 
+      }).session(session);
+
+      if (existingSections.length !== sections.length) {
+        throw new Error('One or more sections not found or do not belong to the specified website');
+      }
+
+      // Get all sections for the website to determine max order
+      const allSections = await SectionModel.find({ WebSiteId: websiteId })
+        .sort({ order: 1 })
+        .session(session);
+
+      const maxOrder = allSections.length - 1;
+
+      // Validate new order values
+      for (const { newOrder } of sections) {
+        if (!Number.isInteger(newOrder) || newOrder < 0 || newOrder > maxOrder) {
+          throw new Error(`Order value must be between 0 and ${maxOrder}`);
+        }
+      }
+
+      // Update orders for all sections
+      const updates = sections.map(({ sectionId, newOrder }) => ({
+        updateOne: {
+          filter: { _id: sectionId, WebSiteId: websiteId },
+          update: { $set: { order: newOrder } },
+        },
+      }));
+
+      await SectionModel.bulkWrite(updates, { session });
+
+      // Fetch updated sections
+      const updatedSections = await SectionModel.find({ 
+        _id: { $in: sectionIds }, 
+        WebSiteId: websiteId 
+      }).session(session);
+
+      await session.commitTransaction();
+      return updatedSections;
+    } catch (error: any) {
+      await session.abortTransaction();
+      
+      // Check if the error is a transient transaction error
+      if (error.name === 'MongoBulkWriteError' && error.message.includes('Write conflict')) {
+        attempt++;
+        if (attempt >= maxRetries) {
+          throw new Error('Max retries reached for write conflict. Please try again later.');
+        }
+        // Optional: Add a small delay before retrying to reduce contention
+        await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+        continue;
+      }
+      
+      throw error; // Rethrow non-transient errors
+    } finally {
+      session.endSession();
+    }
+  }
+
+  throw new Error('Unexpected error: Retry loop exited without resolution');
+}
 }
 
 
