@@ -50,6 +50,22 @@ WebSiteSchema.virtual('sections', {
     foreignField: 'WebSiteId' // Match the field in SectionModel
 });
 
+// Virtual field for themes (colors and fonts)
+WebSiteSchema.virtual('themes', {
+    ref: 'WebSiteTheme',
+    localField: '_id',
+    foreignField: 'websiteId'
+});
+
+// Virtual field for active theme
+WebSiteSchema.virtual('activeTheme', {
+    ref: 'WebSiteTheme',
+    localField: '_id',
+    foreignField: 'websiteId',
+    justOne: true,
+    match: { isActive: true }
+});
+
 const WebSiteModel = mongoose.model<WebSiteProps>('WebSite', WebSiteSchema);
 
 export default WebSiteModel;
